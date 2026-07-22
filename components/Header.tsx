@@ -3,9 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { navLinks } from "@/data/home";
+import type { HeaderSettings, NavLink } from "@/lib/content/types";
+import { mediaUrl } from "@/lib/content/media";
 
-export default function Header() {
+type Props = {
+  navLinks: NavLink[];
+  header: HeaderSettings;
+};
+
+export default function Header({ navLinks, header }: Props) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -28,11 +34,12 @@ export default function Header() {
       <div className="header-inner">
         <Link href="/" className="logo-link" onClick={() => setOpen(false)}>
           <Image
-            src="/images/logo.png"
-            alt="WinDoor Quote"
+            src={mediaUrl(header.logo_path) || "/images/logo.png"}
+            alt={header.logo_alt || "WinDoor Quote"}
             width={174}
             height={44}
             priority
+            style={{ width: "auto", height: "auto" }}
           />
         </Link>
 
@@ -57,7 +64,7 @@ export default function Header() {
         <nav className={`main-nav${open ? " is-open" : ""}`}>
           <ul>
             {navLinks.map((link) => (
-              <li key={link.href}>
+              <li key={link.id}>
                 <a href={link.href} onClick={() => setOpen(false)}>
                   {link.label}
                 </a>
@@ -65,11 +72,11 @@ export default function Header() {
             ))}
           </ul>
           <a
-            href="/#contactus"
+            href={header.cta_href}
             className="header-cta"
             onClick={() => setOpen(false)}
           >
-            Contact us
+            {header.cta_label}
           </a>
         </nav>
       </div>

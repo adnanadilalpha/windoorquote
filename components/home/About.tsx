@@ -1,89 +1,48 @@
-import { aboutText } from "@/data/home";
+import type { HomeAbout } from "@/lib/content/types";
 
-const body = aboutText.replace(
-  /^Taking the complex and making it simple\s*/i,
-  "",
-);
+export default function About({ about }: { about: HomeAbout }) {
+  const steps = about.process ?? [];
 
-const traits = ["Fast", "Reliable", "Flexible", "Intuitive"] as const;
-
-export default function About() {
   return (
     <section id="aboutus" className="about-mark">
       <div className="about-mark-rail" aria-hidden="true">
         <span className="about-mark-spear" />
-        <span className="about-mark-place">Omaha · Nebraska</span>
+        <span className="about-mark-place">{about.location}</span>
         <span className="about-mark-spear" />
       </div>
 
       <div className="about-mark-grid">
-        <aside className="about-mark-aside" aria-hidden="true">
-          <p className="flow-kicker">Origin</p>
-
-          <div className="about-mark-stack">
-            <div className="about-mark-chip about-mark-chip--cloud">
-              <span className="about-mark-chip-icon">
-                <svg viewBox="0 0 48 32" fill="none" aria-hidden="true">
-                  <path
-                    d="M38.5 26H14a10 10 0 0 1-1.2-19.9A12 12 0 0 1 36.2 9.4 7.5 7.5 0 0 1 38.5 26Z"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                  />
-                </svg>
-              </span>
-              <div>
-                <strong>Cloud based</strong>
-                <em>ERP & quoting software</em>
-              </div>
-            </div>
-
-            <div className="about-mark-chip">
-              <span className="about-mark-chip-icon about-mark-chip-icon--grid">
-                <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-                  <rect x="4" y="4" width="14" height="14" stroke="currentColor" strokeWidth="2" />
-                  <rect x="22" y="4" width="14" height="14" stroke="currentColor" strokeWidth="2" />
-                  <rect x="4" y="22" width="14" height="14" stroke="currentColor" strokeWidth="2" />
-                  <rect x="22" y="22" width="14" height="14" stroke="currentColor" strokeWidth="2" />
-                </svg>
-              </span>
-              <div>
-                <strong>One system</strong>
-                <em>Sales through production</em>
-              </div>
-            </div>
-          </div>
-
-          <ul className="about-mark-traits">
-            {traits.map((trait) => (
-              <li key={trait}>
-                <span className="about-mark-trait-dot" />
-                {trait}
-              </li>
-            ))}
-          </ul>
-
+        <aside className="about-mark-aside">
           <div className="about-mark-system">
-            <span>Quote</span>
-            <span className="about-mark-dash" />
-            <span>Order</span>
-            <span className="about-mark-dash" />
-            <span>Produce</span>
-            <span className="about-mark-dash" />
-            <span>Ship</span>
+            <p className="about-mark-system-kicker">From first quote to ship date</p>
+            <ol className="about-mark-system-list" aria-label="How WDQ works">
+              {steps.map((step, i) => (
+                <li key={`${step}-${i}`} className="about-mark-step">
+                  <span className="about-mark-step-ghost" aria-hidden="true">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="about-mark-step-track" aria-hidden="true">
+                    <span className="about-mark-step-node" />
+                  </span>
+                  <span className="about-mark-step-label">{step}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="about-mark-system-glow" aria-hidden="true" />
           </div>
         </aside>
 
         <div className="about-mark-copy">
           <div className="about-mark-copy-head">
             <span className="about-mark-diamond" aria-hidden="true" />
-            <h2>ABOUT US</h2>
+            <h2>{about.title}</h2>
           </div>
 
           <p className="about-mark-text">
             <strong>
-              <em>Taking the complex and making it simple </em>
+              <em>{about.mission_lead}</em>
             </strong>
-            {body}
+            {about.body}
           </p>
         </div>
       </div>

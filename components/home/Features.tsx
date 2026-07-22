@@ -2,9 +2,15 @@
 
 import Image from "next/image";
 import { useEffect, useRef, type CSSProperties } from "react";
-import { features } from "@/data/home";
+import type { Feature, HomeSectionLabels } from "@/lib/content/types";
+import { mediaUrl } from "@/lib/content/media";
 
-export default function Features() {
+type Props = {
+  features: Feature[];
+  labels: Pick<HomeSectionLabels, "features_title">;
+};
+
+export default function Features({ features, labels }: Props) {
   const riverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,7 +38,9 @@ export default function Features() {
 
     nodes.forEach((n) => observer.observe(n));
     return () => observer.disconnect();
-  }, []);
+  }, [features]);
+
+  if (!features.length) return null;
 
   return (
     <section id="features" className="features-river">
@@ -43,8 +51,7 @@ export default function Features() {
       </div>
 
       <header className="features-river-head">
-        <p className="flow-kicker">Capabilities</p>
-        <h2>FEATURES</h2>
+        <h2>{labels.features_title}</h2>
       </header>
 
       <div className="features-river-body" ref={riverRef}>
@@ -65,7 +72,7 @@ export default function Features() {
             const side = index % 2 === 0 ? "left" : "right";
             return (
               <li
-                key={feature.title}
+                key={feature.id}
                 data-flow-node
                 className={`features-river-node features-river-node--${side}`}
                 style={{ "--i": index } as CSSProperties}
@@ -73,7 +80,7 @@ export default function Features() {
                 <div className="features-river-content">
                   <div className="features-river-icon">
                     <Image
-                      src={feature.image}
+                      src={mediaUrl(feature.image_path)}
                       alt=""
                       width={120}
                       height={120}

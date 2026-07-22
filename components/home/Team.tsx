@@ -4,20 +4,24 @@ import Image from "next/image";
 import {
   useCallback,
   useEffect,
-  useRef,
   useState,
   type CSSProperties,
   type MouseEvent,
 } from "react";
-import { team } from "@/data/home";
+import type { HomeSectionLabels, TeamMember } from "@/lib/content/types";
+import { mediaUrl } from "@/lib/content/media";
 
-export default function Team() {
+type Props = {
+  team: TeamMember[];
+  labels: Pick<HomeSectionLabels, "team_title">;
+};
+
+export default function Team({ team, labels }: Props) {
   const [open, setOpen] = useState(0);
   const [mx, setMx] = useState(0.5);
-  const dossierRef = useRef<HTMLDivElement>(null);
-  const member = team[open];
 
   const onMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    if (window.matchMedia("(max-width: 980px)").matches) return;
     if (!window.matchMedia("(hover: hover)").matches) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setMx((e.clientX - rect.left) / rect.width);
@@ -25,6 +29,7 @@ export default function Team() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (window.matchMedia("(max-width: 980px)").matches) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.key === "ArrowRight") {
@@ -38,61 +43,58 @@ export default function Team() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [team.length]);
 
-  useEffect(() => {
-    const narrow = window.matchMedia("(max-width: 980px)");
-    if (!narrow.matches || !dossierRef.current) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      dossierRef.current?.scrollIntoView({
-        block: "nearest",
-        behavior: "smooth",
-      });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [open]);
+  if (!team.length) return null;
 
   return (
     <section id="employees" className="team-doors">
       <header className="team-doors-head">
-        <p className="flow-kicker">People</p>
-        <h2>OUR TEAM</h2>
+        <h2>{labels.team_title}</h2>
       </header>
 
       <div
         className="team-doors-wall"
         onMouseMove={onMove}
         style={{ "--mx": mx } as CSSProperties}
-        role="tablist"
+        role="list"
         aria-label="Team members"
       >
         {team.map((person, index) => {
           const isOpen = open === index;
           return (
-            <div key={person.name} className="team-door-block">
+            <div key={person.id} className="team-door-block" role="listitem">
               <button
                 type="button"
-                role="tab"
-                aria-selected={isOpen}
-                aria-controls="team-dossier"
+                aria-expanded={isOpen}
+                aria-controls={`team-dossier-${person.id}`}
                 className={`team-door${isOpen ? " is-open" : ""}`}
                 onMouseEnter={() => {
-                  if (window.matchMedia("(hover: hover)").matches) {
-                    setOpen(index);
+                  if (
+                    window.matchMedia("(max-width: 980px)").matches ||
+                    !window.matchMedia("(hover: hover)").matches
+                  ) {
+                    return;
                   }
+                  setOpen(index);
                 }}
-                onFocus={() => setOpen(index)}
-                onClick={() => setOpen(index)}
+                onFocus={() => {
+                  if (window.matchMedia("(max-width: 980px)").matches) return;
+                  setOpen(index);
+                }}
+                onClick={() => {
+                  if (window.matchMedia("(max-width: 980px)").matches) return;
+                  setOpen(index);
+                }}
               >
                 <span className="team-door-pane media-fill">
                   <Image
-                    src={person.image}
+                    src={mediaUrl(person.image_path)}
                     alt={person.name}
                     fill
-                    sizes="(max-width: 900px) 90vw, 55vw"
+                    sizes="(max-width: 980px) 90vw, 55vw"
                     className="team-door-photo"
-                    priority={index === 0}
+                    priority={index < 2}
                   />
                   <span className="team-door-shade" aria-hidden="true" />
                 </span>
@@ -107,21 +109,17 @@ export default function Team() {
                 </span>
               </button>
 
-              {isOpen ? (
-                <div
-                  id="team-dossier"
-                  ref={dossierRef}
-                  className="team-dossier"
-                  role="tabpanel"
-                  aria-label={`${member.name}, ${member.role}`}
-                >
-                  <div className="team-dossier-meta">
-                    <p className="team-dossier-role">{member.role}</p>
-                    <h3>{member.name}</h3>
-                  </div>
-                  <p className="team-dossier-bio">{member.bio}</p>
+              <div
+                id={`team-dossier-${person.id}`}
+                className={`team-dossier${isOpen ? " is-active" : ""}`}
+                aria-label={`${person.name}, ${person.role}`}
+              >
+                <div className="team-dossier-meta">
+                  <p className="team-dossier-role">{person.role}</p>
+                  <h3>{person.name}</h3>
                 </div>
-              ) : null}
+                <p className="team-dossier-bio">{person.bio}</p>
+              </div>
             </div>
           );
         })}

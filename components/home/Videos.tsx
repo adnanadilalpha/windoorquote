@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { videos } from "@/data/home";
+import type { HomeSectionLabels, Video } from "@/lib/content/types";
+import { mediaUrl } from "@/lib/content/media";
 
 function youtubeId(url: string) {
   try {
@@ -30,11 +31,16 @@ function embedSrc(id: string, origin: string) {
   return `https://www.youtube.com/embed/${id}?${params.toString()}`;
 }
 
-export default function Videos() {
+type Props = {
+  videos: Video[];
+  labels: Pick<HomeSectionLabels, "videos_title">;
+};
+
+export default function Videos({ videos, labels }: Props) {
   const [open, setOpen] = useState<number | null>(null);
   const [origin, setOrigin] = useState("");
   const current = open !== null ? videos[open] : null;
-  const id = current ? youtubeId(current.href) : null;
+  const id = current ? youtubeId(current.youtube_url) : null;
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -42,12 +48,15 @@ export default function Videos() {
 
   const close = useCallback(() => setOpen(null), []);
 
-  const step = useCallback((dir: 1 | -1) => {
-    setOpen((i) => {
-      if (i === null) return i;
-      return (i + dir + videos.length) % videos.length;
-    });
-  }, []);
+  const step = useCallback(
+    (dir: 1 | -1) => {
+      setOpen((i) => {
+        if (i === null) return i;
+        return (i + dir + videos.length) % videos.length;
+      });
+    },
+    [videos.length],
+  );
 
   useEffect(() => {
     if (open === null) return;
@@ -76,14 +85,13 @@ export default function Videos() {
     <section id="demos" className="flow-section videos-lane">
       <div className="videos-lane-inner">
         <header className="flow-section-head">
-          <p className="flow-kicker">Product walkthroughs</p>
-          <h2>VIDEO DEMOS</h2>
+          <h2>{labels.videos_title}</h2>
         </header>
 
         <ul className="videos-lane-grid">
           {videos.map((video, index) => (
             <li
-              key={video.href}
+              key={video.id}
               className={`videos-lane-cell${index >= 3 ? " is-shift" : ""}`}
             >
               <button
@@ -100,11 +108,11 @@ export default function Videos() {
                   <span className="videos-lane-stage">
                     <span className="videos-lane-thumb media-fill">
                       <Image
-                        src={video.thumb}
+                        src={mediaUrl(video.thumb_path)}
                         alt=""
                         fill
                         sizes="(max-width: 700px) 100vw, (max-width: 980px) 50vw, 33vw"
-                        unoptimized={video.thumb.endsWith(".gif")}
+                        unoptimized={video.thumb_path.endsWith(".gif")}
                         className="videos-lane-img"
                         priority={index < 3}
                       />

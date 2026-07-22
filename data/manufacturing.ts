@@ -75,7 +75,7 @@ export const manufacturingVideosCta = {
 
 export const manufacturingContactCta = {
   title: "Intrested in more details?",
-  body: "Fell free to contact our team using Contact Form below. We will answer your question within 24 hours.",
+  body: "Feel free to contact our team using the Contact Form. We will answer your question within 24 hours.",
   cta: "CONTACT US",
   href: "/#contactus",
   phoneImage: "/images/manufacturing/phone-cta.png",

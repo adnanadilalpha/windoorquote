@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import { useCallback, useState, type MouseEvent } from "react";
-import { clients } from "@/data/home";
-
-type Client = (typeof clients)[number];
+import type { Client, HomeSectionLabels } from "@/lib/content/types";
+import { mediaUrl } from "@/lib/content/media";
 
 type Active = {
   key: string;
@@ -13,7 +12,12 @@ type Active = {
   left: number;
 };
 
-export default function Clients() {
+type Props = {
+  clients: Client[];
+  labels: Pick<HomeSectionLabels, "clients_title">;
+};
+
+export default function Clients({ clients, labels }: Props) {
   const [active, setActive] = useState<Active | null>(null);
   const row = [...clients, ...clients];
 
@@ -44,20 +48,21 @@ export default function Clients() {
     [],
   );
 
+  if (!clients.length) return null;
+
   return (
     <section
       id="clients"
       className={`flow-section clients-flow${active ? " is-scoped" : ""}`}
     >
       <div className="flow-section-head">
-        <p className="flow-kicker">Partners</p>
-        <h2>OUR CLIENTS</h2>
+        <h2>{labels.clients_title}</h2>
       </div>
 
       <div className="clients-marquee" aria-label="Client logos">
         <div className="clients-track">
           {row.map((client, i) => {
-            const key = `${client.name}-${i}`;
+            const key = `${client.id}-${i}`;
             const inert = i >= clients.length;
             const isActive = active?.key === key;
 
@@ -75,11 +80,12 @@ export default function Clients() {
                 onMouseLeave={clear}
               >
                 <Image
-                  src={client.src}
+                  src={mediaUrl(client.logo_path)}
                   alt={inert ? "" : client.name}
                   width={160}
                   height={70}
                   className="clients-chip-img"
+                  style={{ width: "auto", height: "auto" }}
                 />
               </a>
             );
@@ -94,11 +100,12 @@ export default function Clients() {
           style={{ top: active.top, left: active.left }}
         >
           <Image
-            src={active.client.src}
+            src={mediaUrl(active.client.logo_path)}
             alt=""
             width={400}
             height={180}
             className="clients-stage-img"
+            style={{ width: "auto", height: "auto" }}
           />
         </div>
       )}

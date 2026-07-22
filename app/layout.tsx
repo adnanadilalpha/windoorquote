@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import { Open_Sans } from "next/font/google";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import HashScroll from "@/components/HashScroll";
-import ScrollProgress from "@/components/ScrollProgress";
 import "./globals.css";
 
-/* Original WordPress / Divi site font */
 const openSans = Open_Sans({
   variable: "--font-open-sans",
   subsets: ["latin"],
@@ -25,14 +20,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-US" className={`${openSans.variable} h-full antialiased`}>
-      <body className="min-h-full">
-        <ScrollProgress />
-        <HashScroll />
-        <Header />
-        <div className="page-shell">{children}</div>
-        <Footer />
-      </body>
+    <html
+      lang="en-US"
+      data-scroll-behavior="smooth"
+      className={`${openSans.variable} h-full antialiased`}
+    >
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }
