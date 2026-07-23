@@ -8,7 +8,17 @@ import {
   sendContactNotification,
   sendTestContactEmail,
 } from "@/lib/email/contact-notify";
-import type { ContactEmailSettings } from "@/lib/content/types";
+import type { ContactEmailSettings, SiteSecuritySettings } from "@/lib/content/types";
+import {
+  clearSiteSecuritySettingsCache,
+} from "@/lib/security/load-settings";
+import {
+  normalizeSiteSecuritySettings,
+  SITE_SECURITY_KEY,
+} from "@/lib/security/settings";
+import { evaluateContactSpam, isIpRateLimited } from "@/lib/security/spam";
+import { getClientIp } from "@/lib/security/request-country";
+import { headers } from "next/headers";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -141,9 +151,48 @@ export async function submitContactForm(formData: FormData) {
   const phone = String(formData.get("phone") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
   const source_page = String(formData.get("source_page") ?? "/").trim();
+  const honeypot = String(
+    formData.get("website") ?? formData.get("company_url") ?? "",
+  );
+  const formStartedAt = String(formData.get("form_started_at") ?? "");
 
   if (!name || !email || !message) {
     return { error: "Name, email, and message are required." };
+  }
+
+  const adminClient = createAdminClient();
+
+  const { data: securityRow } = await adminClient
+    .from("site_settings")
+    .select("value")
+    .eq("key", SITE_SECURITY_KEY)
+    .maybeSingle();
+
+  const security = normalizeSiteSecuritySettings(
+    (securityRow?.value as Partial<SiteSecuritySettings> | null) ?? null,
+  );
+
+  const spam = evaluateContactSpam({
+    settings: security,
+    message,
+    honeypot,
+    formStartedAt,
+  });
+
+  if (spam.blocked) {
+    if (spam.silent) {
+      return { success: true };
+    }
+    return { error: spam.reason || "Unable to send your message." };
+  }
+
+  const headerStore = await headers();
+  const clientIp = getClientIp(headerStore);
+  if (isIpRateLimited(clientIp, security)) {
+    return {
+      error:
+        "You've sent too many messages recently. Please try again later.",
+    };
   }
 
   const payload = {
@@ -156,7 +205,6 @@ export async function submitContactForm(formData: FormData) {
   };
 
   // Service role: insert + optional email notify (settings table is admin-only).
-  const adminClient = createAdminClient();
   const { data: inserted, error } = await adminClient
     .from("contact_submissions")
     .insert(payload)
@@ -187,6 +235,29 @@ export async function submitContactForm(formData: FormData) {
   }
 
   revalidatePath("/admin/contact-inbox");
+  return { success: true };
+}
+
+export async function saveSiteSecuritySettings(input: SiteSecuritySettings) {
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Not authorized." };
+  }
+
+  const next = normalizeSiteSecuritySettings(input);
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.from("site_settings").upsert({
+    key: SITE_SECURITY_KEY,
+    value: next,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) return { error: error.message };
+
+  clearSiteSecuritySettingsCache();
+  revalidatePath("/admin/security");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 

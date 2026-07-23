@@ -1,5 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSiteSecuritySettingsCached } from "@/lib/security/load-settings";
+import { getRequestCountry } from "@/lib/security/request-country";
+import { isCountryAllowed } from "@/lib/security/settings";
+
+function isCountryBlockExempt(path: string) {
+  return (
+    path.startsWith("/admin") ||
+    path === "/blocked" ||
+    path.startsWith("/api/")
+  );
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -33,6 +44,24 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isAdminRoute = path.startsWith("/admin");
   const isLoginRoute = path === "/admin/login";
+
+  // When on: block every country except US (+ any admin-allowed countries).
+  if (!isCountryBlockExempt(path)) {
+    try {
+      const security = await getSiteSecuritySettingsCached();
+      if (security.country_block_enabled) {
+        const country = getRequestCountry(request);
+        if (!isCountryAllowed(security, country)) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/blocked";
+          url.search = "";
+          return NextResponse.redirect(url);
+        }
+      }
+    } catch {
+      // Fail open — never take the site down if settings fetch fails.
+    }
+  }
 
   if (isAdminRoute && !isLoginRoute) {
     if (!user) {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Factory,
+  GlobeLock,
   Home,
   Inbox,
   LogOut,
@@ -25,6 +26,7 @@ const nav = [
   { href: "/admin/privacy", label: "Privacy", icon: Shield },
   { href: "/admin/contact-inbox", label: "Inbox", icon: Inbox },
   { href: "/admin/email", label: "Email setup", icon: Mail },
+  { href: "/admin/security", label: "Security", icon: GlobeLock },
   { href: "/admin/admins", label: "Admins", icon: Users },
   { href: "/admin/settings", label: "Site & Nav", icon: Settings },
 ];

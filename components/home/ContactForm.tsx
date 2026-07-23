@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 import { submitContactForm } from "@/lib/actions/cms";
 
 type ContactFormProps = {
@@ -23,12 +23,18 @@ export default function ContactForm({
   const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [formStartedAt, setFormStartedAt] = useState(() => String(Date.now()));
+
+  useEffect(() => {
+    setFormStartedAt(String(Date.now()));
+  }, []);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
     formData.set("source_page", sourcePage);
+    formData.set("form_started_at", formStartedAt);
 
     startTransition(async () => {
       setError(null);
@@ -40,6 +46,7 @@ export default function ContactForm({
       }
       setStatus("sent");
       form.reset();
+      setFormStartedAt(String(Date.now()));
     });
   }
 
@@ -49,6 +56,32 @@ export default function ContactForm({
       onSubmit={handleSubmit}
     >
       <input type="hidden" name="source_page" value={sourcePage} />
+      <input type="hidden" name="form_started_at" value={formStartedAt} />
+
+      {/* Honeypot — leave empty. Hidden from people, filled by many bots. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: "-10000px",
+          top: "auto",
+          width: "1px",
+          height: "1px",
+          overflow: "hidden",
+        }}
+      >
+        <label>
+          Website
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            defaultValue=""
+          />
+        </label>
+      </div>
+
       <div className="contact-desk-row">
         <label>
           Name

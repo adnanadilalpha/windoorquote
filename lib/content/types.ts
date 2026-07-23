@@ -123,6 +123,24 @@ export type ContactEmailSettings = {
   smtp_pass: string;
 };
 
+/** CMS-controlled site access + contact spam protection. */
+export type SiteSecuritySettings = {
+  country_block_enabled: boolean;
+  /**
+   * Extra countries allowed when blocking is on.
+   * United States (US) is always allowed and never stored here.
+   */
+  allowed_countries: string[];
+  spam_protection_enabled: boolean;
+  honeypot_enabled: boolean;
+  /** Reject submissions sent faster than this (bot timing). */
+  min_submit_seconds: number;
+  rate_limit_enabled: boolean;
+  rate_limit_max: number;
+  rate_limit_window_minutes: number;
+  max_links_in_message: number;
+};
+
 export type MediaAsset = {
   id: string;
   path: string;

@@ -23,8 +23,12 @@ export default function EmailTemplatePreview() {
   const [kind, setKind] = useState<PreviewKind>("inquiry");
 
   const preview = useMemo(() => {
-    if (kind === "test") return buildTestEmail();
-    return buildContactNotificationEmail(SAMPLE_INQUIRY);
+    const logoSrc =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/images/logo-email-white.png`
+        : "/images/logo-email-white.png";
+    if (kind === "test") return buildTestEmail({ logoSrc });
+    return buildContactNotificationEmail(SAMPLE_INQUIRY, { logoSrc });
   }, [kind]);
 
   return (
@@ -73,7 +77,7 @@ export default function EmailTemplatePreview() {
         <iframe
           title="Email template preview"
           srcDoc={preview.html}
-          className="h-[640px] w-full rounded-xl border border-navy-800/10 bg-white shadow-sm"
+          className="h-160 w-full rounded-xl border border-navy-800/10 bg-white shadow-sm"
           sandbox=""
         />
       </div>

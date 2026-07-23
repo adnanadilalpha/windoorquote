@@ -1,9 +1,11 @@
 import "server-only";
+import path from "path";
 import nodemailer from "nodemailer";
 import type { ContactEmailSettings } from "@/lib/content/types";
 import {
   buildContactNotificationEmail,
   buildTestEmail,
+  EMAIL_LOGO_CID,
   type ContactMessagePayload,
 } from "@/lib/email/templates";
 
@@ -25,6 +27,11 @@ export const defaultContactEmailSettings: ContactEmailSettings = {
 };
 
 const SMTP_TIMEOUT_MS = 20_000;
+
+const EMAIL_LOGO_PATH = path.join(
+  process.cwd(),
+  "public/images/logo-email-white.png",
+);
 
 function formatSmtpError(error: unknown) {
   if (!(error instanceof Error)) return "Failed to send email.";
@@ -112,6 +119,15 @@ async function sendViaSmtp(
       subject: options.subject,
       text: options.text,
       html: options.html,
+      attachments: [
+        {
+          filename: "logo-email-white.png",
+          path: EMAIL_LOGO_PATH,
+          cid: EMAIL_LOGO_CID,
+          contentType: "image/png",
+          contentDisposition: "inline",
+        },
+      ],
     });
 
     return { success: true };

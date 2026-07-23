@@ -7,12 +7,33 @@ export type ContactMessagePayload = {
   source_page: string;
 };
 
+/** Content-ID used when the white logo is attached inline via nodemailer. */
+export const EMAIL_LOGO_CID = "wdq-logo";
+
+export type EmailTemplateOptions = {
+  /** Override logo src (preview). Defaults to cid: attachment for real sends. */
+  logoSrc?: string;
+};
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function emailLogoMarkup(logoSrc?: string) {
+  const src = logoSrc?.trim() || `cid:${EMAIL_LOGO_CID}`;
+  return `
+    <img
+      src="${escapeHtml(src)}"
+      width="174"
+      height="44"
+      alt="WinDoor Quote"
+      style="display:block;border:0;outline:none;text-decoration:none;height:44px;width:auto;max-width:174px;"
+    />
+  `;
 }
 
 function detailRow(label: string, value: string, last = false) {
@@ -35,9 +56,9 @@ function detailRow(label: string, value: string, last = false) {
 
 function emailShell(options: {
   preheader: string;
-  title: string;
   bodyHtml: string;
   footerNote?: string;
+  logoSrc?: string;
 }) {
   const year = new Date().getFullYear();
   return `<!DOCTYPE html>
@@ -47,7 +68,7 @@ function emailShell(options: {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light" />
   <meta name="supported-color-schemes" content="light" />
-  <title>${escapeHtml(options.title)}</title>
+  <title>WinDoor Quote</title>
   <!--[if mso]>
   <style type="text/css">
     body, table, td { font-family: Arial, Helvetica, sans-serif !important; }
@@ -66,13 +87,8 @@ function emailShell(options: {
             <td style="background:#0c527a;padding:0;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td style="padding:22px 28px 20px;">
-                    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;line-height:1.4;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.72);font-weight:600;">
-                      WinDoor Quote
-                    </p>
-                    <h1 style="margin:8px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;line-height:1.3;letter-spacing:-0.02em;color:#ffffff;font-weight:650;">
-                      ${escapeHtml(options.title)}
-                    </h1>
+                  <td style="padding:22px 28px;">
+                    ${emailLogoMarkup(options.logoSrc)}
                   </td>
                 </tr>
                 <tr>
@@ -110,7 +126,10 @@ function emailShell(options: {
 </html>`;
 }
 
-export function buildContactNotificationEmail(payload: ContactMessagePayload) {
+export function buildContactNotificationEmail(
+  payload: ContactMessagePayload,
+  options?: EmailTemplateOptions,
+) {
   const company = payload.company.trim() || "—";
   const phone = payload.phone.trim() || "—";
   const emailLink = `<a href="mailto:${escapeHtml(payload.email)}" style="color:#12689b;text-decoration:none;font-weight:600;">${escapeHtml(payload.email)}</a>`;
@@ -162,7 +181,13 @@ export function buildContactNotificationEmail(payload: ContactMessagePayload) {
       </tr>
     </table>
 
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:24px;margin-bottom:8px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr>
+        <td height="48" style="height:48px;line-height:48px;font-size:0;">&nbsp;</td>
+      </tr>
+    </table>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:20px;">
       <tr>
         <td align="left">
           <!--[if mso]>
@@ -186,8 +211,8 @@ export function buildContactNotificationEmail(payload: ContactMessagePayload) {
 
   const html = emailShell({
     preheader: `New inquiry from ${payload.name}${payload.company ? ` · ${payload.company}` : ""}`,
-    title: "New website inquiry",
     bodyHtml,
+    logoSrc: options?.logoSrc,
   });
 
   return {
@@ -197,7 +222,7 @@ export function buildContactNotificationEmail(payload: ContactMessagePayload) {
   };
 }
 
-export function buildTestEmail() {
+export function buildTestEmail(options?: EmailTemplateOptions) {
   const text = [
     "WinDoor Quote — email delivery test",
     "",
@@ -223,9 +248,9 @@ export function buildTestEmail() {
 
   const html = emailShell({
     preheader: "Your WinDoor Quote email setup is working.",
-    title: "Email delivery test",
     bodyHtml,
     footerNote: "Sent from Email setup in your WinDoor Quote CMS.",
+    logoSrc: options?.logoSrc,
   });
 
   return {
