@@ -109,7 +109,8 @@ export type ContactSubmission = {
 
 export type ContactEmailSettings = {
   enabled: boolean;
-  provider: "resend" | "smtp";
+  /** Always "smtp" for custom mailbox delivery. */
+  provider: "smtp" | "resend" | "brevo";
   to_email: string;
   from_email: string;
   from_name: string;

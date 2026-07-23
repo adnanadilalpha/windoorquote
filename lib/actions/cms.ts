@@ -37,15 +37,10 @@ function revalidateSite() {
 function normalizeEmailSettings(
   row: Partial<ContactEmailSettings> | null | undefined,
 ): ContactEmailSettings {
-  const provider =
-    row?.provider === "smtp" || row?.provider === "resend"
-      ? row.provider
-      : "resend";
-
   return {
     ...defaultContactEmailSettings,
     ...row,
-    provider,
+    provider: "smtp",
     smtp_port: Number(row?.smtp_port ?? defaultContactEmailSettings.smtp_port),
     enabled: Boolean(row?.enabled),
     smtp_secure: Boolean(row?.smtp_secure),
@@ -53,7 +48,8 @@ function normalizeEmailSettings(
       row?.reply_to_submitter === undefined
         ? true
         : Boolean(row.reply_to_submitter),
-    resend_api_key: String(row?.resend_api_key ?? ""),
+    smtp_user: String(row?.smtp_user || row?.from_email || ""),
+    resend_api_key: "",
   };
 }
 
@@ -196,7 +192,7 @@ export async function submitContactForm(formData: FormData) {
 
 export async function saveContactEmailSettings(
   input: ContactEmailSettings,
-  options?: { keepExistingPassword?: boolean; keepExistingApiKey?: boolean },
+  options?: { keepExistingPassword?: boolean },
 ) {
   try {
     await requireAdmin();
@@ -209,7 +205,7 @@ export async function saveContactEmailSettings(
 
   const { data: existing } = await adminClient
     .from("contact_email_settings")
-    .select("smtp_pass, resend_api_key")
+    .select("smtp_pass")
     .eq("id", 1)
     .maybeSingle();
 
@@ -219,35 +215,28 @@ export async function saveContactEmailSettings(
   ) {
     next.smtp_pass = existing.smtp_pass;
   }
-  if (
-    (options?.keepExistingApiKey || !next.resend_api_key.trim()) &&
-    existing?.resend_api_key
-  ) {
-    next.resend_api_key = existing.resend_api_key;
-  }
 
   if (next.enabled) {
-    if (!next.to_email.trim()) {
-      return { error: "Enter the email address that should receive messages." };
+    if (!next.from_email.trim()) {
+      return { error: "Enter your email address." };
     }
-    if (next.provider === "resend") {
-      const key =
-        next.resend_api_key.trim() || process.env.RESEND_API_KEY?.trim() || "";
-      if (!key) {
-        return {
-          error:
-            "Paste your Resend API key, or ask your site host to set RESEND_API_KEY.",
-        };
-      }
-    } else if (
-      !next.from_email.trim() ||
-      !next.smtp_host.trim() ||
-      !next.smtp_user.trim() ||
-      !next.smtp_pass.trim()
-    ) {
-      return { error: "SMTP settings are incomplete." };
+    if (!next.to_email.trim()) {
+      return { error: "Enter where contact messages should be delivered." };
+    }
+    if (!next.smtp_host.trim()) {
+      return { error: "Choose an email provider (Gmail, Outlook, Yahoo, or Other)." };
+    }
+    if (!next.smtp_pass.trim()) {
+      return {
+        error:
+          "Enter your email password (for Gmail/Yahoo use an App Password).",
+      };
     }
   }
+
+  next.smtp_user = next.smtp_user.trim() || next.from_email.trim();
+  next.provider = "smtp";
+  next.resend_api_key = "";
 
   const { error } = await adminClient.from("contact_email_settings").upsert({
     id: 1,
@@ -262,7 +251,7 @@ export async function saveContactEmailSettings(
 
 export async function testContactEmailSettings(
   input: ContactEmailSettings,
-  options?: { keepExistingPassword?: boolean; keepExistingApiKey?: boolean },
+  options?: { keepExistingPassword?: boolean },
 ) {
   try {
     await requireAdmin();
@@ -275,7 +264,7 @@ export async function testContactEmailSettings(
 
   const { data: existing } = await adminClient
     .from("contact_email_settings")
-    .select("smtp_pass, resend_api_key")
+    .select("smtp_pass")
     .eq("id", 1)
     .maybeSingle();
 
@@ -285,12 +274,9 @@ export async function testContactEmailSettings(
   ) {
     settings = { ...settings, smtp_pass: existing.smtp_pass };
   }
-  if (
-    (options?.keepExistingApiKey || !settings.resend_api_key.trim()) &&
-    existing?.resend_api_key
-  ) {
-    settings = { ...settings, resend_api_key: existing.resend_api_key };
-  }
+
+  settings.smtp_user =
+    settings.smtp_user.trim() || settings.from_email.trim();
 
   return sendTestContactEmail(settings);
 }

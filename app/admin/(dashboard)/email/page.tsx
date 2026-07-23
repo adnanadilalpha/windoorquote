@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import ContactEmailSettingsForm from "@/components/admin/ContactEmailSettingsForm";
-import {
-  defaultContactEmailSettings,
-  hasPlatformResendKey,
-} from "@/lib/email/contact-notify";
+import EmailTemplatePreview from "@/components/admin/EmailTemplatePreview";
+import { defaultContactEmailSettings } from "@/lib/email/contact-notify";
 import type { ContactEmailSettings } from "@/lib/content/types";
 
 export default async function EmailSetupPage() {
@@ -15,13 +13,13 @@ export default async function EmailSetupPage() {
     .maybeSingle();
 
   const row = emailSettings as
-    | (Partial<ContactEmailSettings> & { resend_api_key?: string })
+    | (Partial<ContactEmailSettings> & { smtp_pass?: string })
     | null;
 
   const settings: ContactEmailSettings = {
     ...defaultContactEmailSettings,
     ...row,
-    provider: "resend",
+    provider: "smtp",
     resend_api_key: "",
     smtp_pass: "",
   };
@@ -31,15 +29,16 @@ export default async function EmailSetupPage() {
       <header>
         <h1 className="admin-page-title">Email setup</h1>
         <p className="admin-page-desc">
-          Get contact form messages in your email — no domain or SMTP required.
+          Connect your own email so contact form messages arrive in your inbox.
         </p>
       </header>
 
       <ContactEmailSettingsForm
         initial={settings}
-        hasSavedApiKey={Boolean(row?.resend_api_key)}
-        hasPlatformKey={hasPlatformResendKey()}
+        hasSavedPassword={Boolean(row?.smtp_pass)}
       />
+
+      <EmailTemplatePreview />
     </div>
   );
 }

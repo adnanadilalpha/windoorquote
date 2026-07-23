@@ -1423,196 +1423,105 @@ button, input, textarea { font: inherit; }
 
 .about-mark-aside {
   display: grid;
-  align-content: stretch;
+  align-content: center;
   padding-right: clamp(0px, 2vw, 12px);
 }
 
-.about-mark-system {
+.about-flow {
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: clamp(22px, 3vw, 32px);
-  padding: clamp(28px, 4vw, 44px) clamp(22px, 3.2vw, 40px);
-  color: #fff;
-  background:
-    linear-gradient(145deg, rgba(52, 198, 245, 0.14) 0%, transparent 42%),
-    linear-gradient(180deg, #0a3a58 0%, #061824 55%, #08324c 100%);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 28px), calc(100% - 28px) 100%, 0 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 18px 40px rgba(6, 24, 36, 0.18);
+  width: 100%;
+  max-width: 22rem;
+  padding: clamp(8px, 1.5vw, 16px) 0;
 }
 
-.about-mark-system::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 85%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.about-mark-system::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), transparent 70%);
-  z-index: 1;
-}
-
-.about-mark-system-glow {
-  position: absolute;
-  right: -20%;
-  bottom: -30%;
-  width: 70%;
-  height: 70%;
-  background: radial-gradient(circle, rgba(52, 198, 245, 0.22), transparent 65%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.about-mark-system-kicker {
-  position: relative;
-  z-index: 1;
-  margin: 0;
+.about-flow-kicker {
+  margin: 0 0 clamp(22px, 3vw, 32px);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: rgba(52, 198, 245, 0.92);
+  color: var(--brand);
 }
 
-.about-mark-system-list {
-  position: relative;
-  z-index: 1;
+.about-flow-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.about-mark-step {
-  position: relative;
+.about-flow-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.about-flow-point {
   display: grid;
-  grid-template-columns: 18px 1fr;
-  column-gap: 18px;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  min-height: 3.4rem;
-  padding: 0.55rem 0 0.55rem 0.15rem;
+  gap: 18px;
 }
 
-.about-mark-step:nth-child(2) {
-  padding-left: 0.85rem;
-}
-
-.about-mark-step:nth-child(3) {
-  padding-left: 1.55rem;
-}
-
-.about-mark-step:nth-child(4) {
-  padding-left: 2.25rem;
-}
-
-.about-mark-step-ghost {
-  position: absolute;
-  left: 1.6rem;
-  top: 50%;
-  transform: translateY(-52%);
-  font-size: clamp(2.8rem, 5.5vw, 3.6rem);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: rgba(255, 255, 255, 0.06);
-  pointer-events: none;
-  user-select: none;
-  z-index: 0;
-}
-
-.about-mark-step:nth-child(2) .about-mark-step-ghost {
-  left: 2.3rem;
-}
-
-.about-mark-step:nth-child(3) .about-mark-step-ghost {
-  left: 3rem;
-}
-
-.about-mark-step:nth-child(4) .about-mark-step-ghost {
-  left: 3.7rem;
-}
-
-.about-mark-step-track {
-  position: relative;
-  z-index: 1;
+.about-flow-node {
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 100%;
-  min-height: 2.6rem;
+  width: 3.1rem;
+  height: 3.1rem;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background:
+    radial-gradient(circle at 35% 30%, rgba(52, 198, 245, 0.22), transparent 60%),
+    #fff;
+  color: var(--brand-ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  box-shadow: 0 0 0 6px rgba(52, 198, 245, 0.12);
 }
 
-.about-mark-step-track::before {
-  content: "";
-  position: absolute;
-  top: -0.55rem;
-  bottom: -0.55rem;
-  left: 50%;
-  width: 1px;
-  transform: translateX(-50%);
-  background: linear-gradient(
-    180deg,
-    rgba(52, 198, 245, 0.15),
-    rgba(52, 198, 245, 0.55),
-    rgba(52, 198, 245, 0.15)
-  );
+.about-flow-node.is-end {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  box-shadow: 0 0 0 6px rgba(18, 104, 155, 0.14);
 }
 
-.about-mark-step:first-child .about-mark-step-track::before {
-  top: 50%;
-}
-
-.about-mark-step:last-child .about-mark-step-track::before {
-  bottom: 50%;
-}
-
-.about-mark-step-node {
-  position: relative;
-  z-index: 1;
-  width: 10px;
-  height: 10px;
-  background: var(--accent);
-  transform: rotate(45deg);
-  box-shadow: 0 0 0 4px rgba(6, 24, 36, 0.9);
-}
-
-.about-mark-step:last-child .about-mark-step-node {
-  background: #fff;
-  box-shadow:
-    0 0 0 4px rgba(6, 24, 36, 0.9),
-    0 0 16px rgba(52, 198, 245, 0.45);
-}
-
-.about-mark-step-label {
-  position: relative;
-  z-index: 1;
-  font-size: clamp(1.35rem, 2.6vw, 1.95rem);
+.about-flow-label {
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem);
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   line-height: 1.05;
-  color: #fff;
+  color: var(--brand-ink);
+}
+
+.about-flow-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 3.1rem;
+  height: 2.4rem;
+  margin: 2px 0;
+}
+
+.about-flow-line {
+  flex: 1;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--accent),
+    rgba(18, 104, 155, 0.45)
+  );
+}
+
+.about-flow-arrow {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--brand);
 }
 
 .about-mark-copy {
@@ -2363,18 +2272,9 @@ button, input, textarea { font: inherit; }
     order: 2;
     padding-right: 0;
   }
-  .about-mark-system {
-    clip-path: none;
-  }
-  .about-mark-step:nth-child(2),
-  .about-mark-step:nth-child(3),
-  .about-mark-step:nth-child(4) {
-    padding-left: 0.15rem;
-  }
-  .about-mark-step:nth-child(2) .about-mark-step-ghost,
-  .about-mark-step:nth-child(3) .about-mark-step-ghost,
-  .about-mark-step:nth-child(4) .about-mark-step-ghost {
-    left: 1.6rem;
+  .about-flow {
+    max-width: 22rem;
+    margin-inline: auto;
   }
   .about-mark-copy::before {
     display: none;

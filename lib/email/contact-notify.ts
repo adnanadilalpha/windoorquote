@@ -1,138 +1,88 @@
 import "server-only";
-import { Resend } from "resend";
 import nodemailer from "nodemailer";
 import type { ContactEmailSettings } from "@/lib/content/types";
+import {
+  buildContactNotificationEmail,
+  buildTestEmail,
+  type ContactMessagePayload,
+} from "@/lib/email/templates";
 
-/** Shared Resend sender — works without domain verification. */
-export const RESEND_SHARED_FROM = "WinDoor Quote <onboarding@resend.dev>";
+export type { ContactMessagePayload };
 
 export const defaultContactEmailSettings: ContactEmailSettings = {
   enabled: false,
-  provider: "resend",
+  provider: "smtp",
   to_email: "",
   from_email: "",
   from_name: "WinDoor Quote",
   reply_to_submitter: true,
   resend_api_key: "",
-  smtp_host: "",
+  smtp_host: "smtp.gmail.com",
   smtp_port: 587,
   smtp_secure: false,
   smtp_user: "",
   smtp_pass: "",
 };
 
-export type ContactMessagePayload = {
-  name: string;
-  company: string;
-  email: string;
-  phone: string;
-  message: string;
-  source_page: string;
-};
+const SMTP_TIMEOUT_MS = 20_000;
 
-const SMTP_TIMEOUT_MS = 15_000;
+function formatSmtpError(error: unknown) {
+  if (!(error instanceof Error)) return "Failed to send email.";
 
-export function resolveResendApiKey(settings: ContactEmailSettings) {
-  return (
-    settings.resend_api_key.trim() ||
-    process.env.RESEND_API_KEY?.trim() ||
-    ""
+  const message = error.message || "Failed to send email.";
+  const code =
+    typeof error === "object" && error && "code" in error
+      ? String((error as { code?: string }).code)
+      : "";
+
+  if (
+    code === "ETIMEDOUT" ||
+    code === "ESOCKET" ||
+    message.toLowerCase().includes("timeout")
+  ) {
+    return "Could not reach the mail server. Check your internet connection, or try again in a moment.";
+  }
+
+  if (
+    code === "EAUTH" ||
+    message.toLowerCase().includes("invalid login") ||
+    message.toLowerCase().includes("authentication")
+  ) {
+    return "Login failed. For Gmail/Yahoo use an App Password (not your normal password). For Outlook, use your Microsoft account password or app password.";
+  }
+
+  return message;
+}
+
+function createTransport(settings: ContactEmailSettings) {
+  const port = Number(settings.smtp_port) || 587;
+  const secure = Boolean(settings.smtp_secure) || port === 465;
+  const user = (settings.smtp_user || settings.from_email).trim();
+
+  return nodemailer.createTransport({
+    host: settings.smtp_host.trim(),
+    port,
+    secure,
+    requireTLS: !secure && port === 587,
+    auth: {
+      user,
+      pass: settings.smtp_pass.replaceAll(" ", ""),
+    },
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+    socketTimeout: SMTP_TIMEOUT_MS,
+  });
+}
+
+function isSmtpReady(settings: ContactEmailSettings) {
+  const user = (settings.smtp_user || settings.from_email).trim();
+  return Boolean(
+    settings.to_email.trim() &&
+      settings.from_email.trim() &&
+      settings.smtp_host.trim() &&
+      user &&
+      settings.smtp_pass.trim(),
   );
-}
-
-export function hasPlatformResendKey() {
-  return Boolean(process.env.RESEND_API_KEY?.trim());
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-function buildNotificationContent(payload: ContactMessagePayload) {
-  const lines = [
-    `Name: ${payload.name}`,
-    `Company: ${payload.company || "—"}`,
-    `Email: ${payload.email}`,
-    `Phone: ${payload.phone || "—"}`,
-    `Source: ${payload.source_page}`,
-    "",
-    "Message:",
-    payload.message,
-  ];
-
-  const text = lines.join("\n");
-  const html = `
-    <div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#0f1c2a">
-      <p><strong>New contact form submission</strong></p>
-      <p>
-        <strong>Name:</strong> ${escapeHtml(payload.name)}<br />
-        <strong>Company:</strong> ${escapeHtml(payload.company || "—")}<br />
-        <strong>Email:</strong> ${escapeHtml(payload.email)}<br />
-        <strong>Phone:</strong> ${escapeHtml(payload.phone || "—")}<br />
-        <strong>Source:</strong> ${escapeHtml(payload.source_page)}
-      </p>
-      <p><strong>Message</strong></p>
-      <p style="white-space:pre-wrap">${escapeHtml(payload.message)}</p>
-    </div>
-  `;
-
-  return { text, html };
-}
-
-function formatFrom(settings: ContactEmailSettings) {
-  const name = settings.from_name.trim() || "WinDoor Quote";
-  const email = settings.from_email.trim();
-  // Custom from only if they provided a verified domain address; otherwise shared Resend sender.
-  if (email && !email.endsWith("@resend.dev")) {
-    return `${name} <${email}>`;
-  }
-  return `${name} <onboarding@resend.dev>`;
-}
-
-async function sendViaResend(
-  settings: ContactEmailSettings,
-  options: {
-    subject: string;
-    text: string;
-    html: string;
-    replyTo?: string;
-  },
-): Promise<{ error?: string; success?: boolean }> {
-  const apiKey = resolveResendApiKey(settings);
-  if (!apiKey) {
-    return {
-      error:
-        "Add a Resend API key on this page (or ask your site host to set RESEND_API_KEY).",
-    };
-  }
-  if (!settings.to_email.trim()) {
-    return { error: "Enter the email address that should receive notifications." };
-  }
-
-  try {
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from: formatFrom(settings),
-      to: [settings.to_email.trim()],
-      subject: options.subject,
-      text: options.text,
-      html: options.html,
-      replyTo: options.replyTo,
-    });
-
-    if (error) {
-      return { error: error.message };
-    }
-    return { success: true };
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Failed to send with Resend.",
-    };
-  }
 }
 
 async function sendViaSmtp(
@@ -144,34 +94,17 @@ async function sendViaSmtp(
     replyTo?: string;
   },
 ): Promise<{ error?: string; success?: boolean }> {
-  if (
-    !settings.to_email.trim() ||
-    !settings.from_email.trim() ||
-    !settings.smtp_host.trim() ||
-    !settings.smtp_user.trim() ||
-    !settings.smtp_pass.trim()
-  ) {
-    return { error: "SMTP settings are incomplete." };
+  if (!isSmtpReady(settings)) {
+    return {
+      error:
+        "Fill in your email, password, and where messages should be delivered.",
+    };
   }
 
   try {
-    const port = Number(settings.smtp_port) || 587;
-    const secure = Boolean(settings.smtp_secure) || port === 465;
-    const transport = nodemailer.createTransport({
-      host: settings.smtp_host.trim(),
-      port,
-      secure,
-      requireTLS: !secure && port === 587,
-      auth: {
-        user: settings.smtp_user.trim(),
-        pass: settings.smtp_pass.replaceAll(" ", ""),
-      },
-      connectionTimeout: SMTP_TIMEOUT_MS,
-      greetingTimeout: SMTP_TIMEOUT_MS,
-      socketTimeout: SMTP_TIMEOUT_MS,
-    });
-
+    const transport = createTransport(settings);
     const fromName = settings.from_name.trim() || "WinDoor Quote";
+
     await transport.sendMail({
       from: `"${fromName}" <${settings.from_email.trim()}>`,
       to: settings.to_email.trim(),
@@ -180,11 +113,10 @@ async function sendViaSmtp(
       text: options.text,
       html: options.html,
     });
+
     return { success: true };
   } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "SMTP send failed.",
-    };
+    return { error: formatSmtpError(error) };
   }
 }
 
@@ -196,25 +128,13 @@ export async function sendContactNotification(
     return { status: "skipped" };
   }
 
-  const { text, html } = buildNotificationContent(payload);
-  const replyTo = settings.reply_to_submitter
-    ? payload.email
-    : undefined;
-
-  const result =
-    settings.provider === "smtp"
-      ? await sendViaSmtp(settings, {
-          subject: `New contact message from ${payload.name}`,
-          text,
-          html,
-          replyTo,
-        })
-      : await sendViaResend(settings, {
-          subject: `New contact message from ${payload.name}`,
-          text,
-          html,
-          replyTo,
-        });
+  const email = buildContactNotificationEmail(payload);
+  const result = await sendViaSmtp(settings, {
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+    replyTo: settings.reply_to_submitter ? payload.email : undefined,
+  });
 
   if (result.error) {
     return { status: "failed", error: result.error };
@@ -225,18 +145,10 @@ export async function sendContactNotification(
 export async function sendTestContactEmail(
   settings: ContactEmailSettings,
 ): Promise<{ error?: string; success?: boolean }> {
-  const result =
-    settings.provider === "smtp"
-      ? await sendViaSmtp(settings, {
-          subject: "WinDoor Quote — test email",
-          text: "This is a test email from your WinDoor Quote email setup. Delivery is working.",
-          html: "<p>This is a test email from your WinDoor Quote email setup. <strong>Delivery is working.</strong></p>",
-        })
-      : await sendViaResend(settings, {
-          subject: "WinDoor Quote — test email",
-          text: "This is a test email from your WinDoor Quote email setup. Delivery is working.",
-          html: "<p>This is a test email from your WinDoor Quote email setup. <strong>Delivery is working.</strong></p>",
-        });
-
-  return result;
+  const email = buildTestEmail();
+  return sendViaSmtp(settings, {
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+  });
 }
