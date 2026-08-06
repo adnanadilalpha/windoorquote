@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { uploadMediaAsset } from "@/lib/admin/media-storage";
+import { isMediaFolder } from "@/lib/content/cms-tables";
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  MAX_MEDIA_UPLOAD_BYTES,
+} from "@/lib/admin/media-paths";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -27,10 +32,28 @@ export async function POST(request: Request) {
   if (typeof folderValue !== "string" || !folderValue.trim()) {
     return NextResponse.json({ error: "Folder is required." }, { status: 400 });
   }
+  if (!isMediaFolder(folderValue.trim())) {
+    return NextResponse.json({ error: "Folder is not allowed." }, { status: 400 });
+  }
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: "File is required." }, { status: 400 });
+  }
+  if (file.size > MAX_MEDIA_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { error: "File is too large. Maximum size is 10 MB." },
+      { status: 400 },
+    );
+  }
+  if (!ALLOWED_IMAGE_MIME_TYPES.has((file.type || "").toLowerCase())) {
+    return NextResponse.json(
+      {
+        error:
+          "Unsupported file type. Please upload a JPEG, PNG, GIF, WebP, or AVIF image.",
+      },
+      { status: 400 },
+    );
   }
 
   try {
@@ -55,6 +78,10 @@ export async function POST(request: Request) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Upload failed.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status =
+      /not allowed|too large|unsupported|invalid|required/i.test(message)
+        ? 400
+        : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

@@ -3,8 +3,14 @@
 import Image from "next/image";
 import type { HomeHero } from "@/lib/content/types";
 import { mediaUrl } from "@/lib/content/media";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/event-types";
+import { trackAnalyticsEvent } from "@/lib/analytics/track-client";
+import { safeHref } from "@/lib/security/safe-url";
 
 export default function Hero({ hero }: { hero: HomeHero }) {
+  const ctaHref = safeHref(hero.cta_href, "/#contactus");
+  const scrollHref = safeHref(hero.scroll_href, "#features");
+
   return (
     <section className="hero" aria-label="Introduction">
       <div className="hero-media media-fill" aria-hidden="true">
@@ -23,16 +29,31 @@ export default function Hero({ hero }: { hero: HomeHero }) {
         <div className="hero-copy">
           <h1 className="hero-title">{hero.title}</h1>
           <p className="hero-lead">{hero.lead}</p>
-          <a href={hero.cta_href} className="hero-cta">
+          <a
+            href={ctaHref}
+            className="hero-cta"
+            onClick={() => {
+              void trackAnalyticsEvent(ANALYTICS_EVENTS.CTA_CLICK, {
+                label: hero.cta_label,
+                metadata: { href: ctaHref, placement: "hero" },
+              });
+            }}
+          >
             {hero.cta_label}
           </a>
         </div>
       </div>
 
       <a
-        href={hero.scroll_href}
+        href={scrollHref}
         className="hero-scroll"
         aria-label="Continue to features"
+        onClick={() => {
+          void trackAnalyticsEvent(ANALYTICS_EVENTS.NAV_CLICK, {
+            label: "Hero scroll",
+            metadata: { href: scrollHref },
+          });
+        }}
       >
         <span />
       </a>

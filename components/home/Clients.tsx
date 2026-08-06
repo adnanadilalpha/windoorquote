@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useState, type MouseEvent } from "react";
 import type { Client, HomeSectionLabels } from "@/lib/content/types";
 import { mediaUrl } from "@/lib/content/media";
+import { safeHref } from "@/lib/security/safe-url";
 
 type Active = {
   key: string;
@@ -69,7 +70,7 @@ export default function Clients({ clients, labels }: Props) {
             return (
               <a
                 key={key}
-                href={client.href}
+                href={safeHref(client.href)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`clients-chip${isActive ? " is-peeking" : ""}`}

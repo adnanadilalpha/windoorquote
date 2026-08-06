@@ -5,6 +5,7 @@ import {
   getSetting,
 } from "@/lib/content/queries";
 import type { PrivacyMetaSettings } from "@/lib/content/types";
+import { safeHref } from "@/lib/security/safe-url";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,11 @@ function Block({
     return (
       <p>
         {String(block.payload.before ?? "")}
-        <a href={link.href} target="_blank" rel="noopener noreferrer">
+        <a
+          href={safeHref(link.href)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {link.label}
         </a>
         {String(block.payload.after ?? "")}

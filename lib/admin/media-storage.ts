@@ -1,12 +1,18 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { MEDIA_FOLDERS, isMediaFolder } from "@/lib/content/cms-tables";
 import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  MAX_MEDIA_UPLOAD_BYTES,
   canonicalStoragePath,
   publicUrlToStoragePath,
+  sanitizePathSegment,
+  sanitizeReplaceStoragePath,
 } from "@/lib/admin/media-paths";
 
 const BUCKET = "media";
+const ALLOWED_FOLDER_SET = new Set<string>(MEDIA_FOLDERS);
 
 export type UploadedMedia = {
   id: string;
@@ -22,31 +28,60 @@ type UploadOptions = {
   userId?: string;
 };
 
-function resolvePath(options: UploadOptions, file: File) {
-  if (options.replaceStoragePath) {
-    return options.replaceStoragePath.replace(/^\/+/, "");
+function assertImageFile(file: File) {
+  if (file.size <= 0) {
+    throw new Error("File is required.");
   }
+  if (file.size > MAX_MEDIA_UPLOAD_BYTES) {
+    throw new Error("File is too large. Maximum size is 10 MB.");
+  }
+  const mime = (file.type || "").toLowerCase();
+  if (!ALLOWED_IMAGE_MIME_TYPES.has(mime)) {
+    throw new Error(
+      "Unsupported file type. Please upload a JPEG, PNG, GIF, WebP, or AVIF image.",
+    );
+  }
+  return mime;
+}
+
+function resolvePath(options: UploadOptions, file: File) {
+  if (!isMediaFolder(options.folder.trim())) {
+    throw new Error("Folder is not allowed.");
+  }
+
+  if (options.replaceStoragePath) {
+    return sanitizeReplaceStoragePath(
+      options.replaceStoragePath,
+      ALLOWED_FOLDER_SET,
+    );
+  }
+
   if (options.filename) {
     return canonicalStoragePath(options.folder, options.filename);
   }
-  const ext = file.name.includes(".")
+
+  const rawExt = file.name.includes(".")
     ? file.name.slice(file.name.lastIndexOf("."))
     : "";
-  const base = file.name
-    .replace(ext, "")
-    .replace(/[^a-z0-9.-]+/gi, "-")
-    .toLowerCase();
-  return `${options.folder.replace(/^\/+|\/+$/g, "")}/${Date.now()}-${base}${ext}`;
+  const ext = sanitizePathSegment(rawExt.replace(/^\./, ""));
+  const base = sanitizePathSegment(
+    file.name.includes(".")
+      ? file.name.slice(0, file.name.lastIndexOf("."))
+      : file.name,
+  );
+  const folder = sanitizePathSegment(options.folder);
+  const name = `${Date.now()}-${base || "image"}${ext ? `.${ext}` : ""}`;
+  return `${folder}/${name}`;
 }
 
 export async function uploadMediaAsset(
   file: File,
   options: UploadOptions,
 ): Promise<UploadedMedia> {
+  const mime = assertImageFile(file);
   const supabase = createAdminClient();
   const storagePath = resolvePath(options, file);
   const buffer = Buffer.from(await file.arrayBuffer());
-  const mime = file.type || "application/octet-stream";
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -65,7 +100,7 @@ export async function uploadMediaAsset(
   const bustedUrl = `${publicUrl}?v=${Date.now()}`;
 
   const existingPath = options.replaceStoragePath
-    ? options.replaceStoragePath
+    ? sanitizeReplaceStoragePath(options.replaceStoragePath, ALLOWED_FOLDER_SET)
     : null;
 
   let mediaId: string | null = null;

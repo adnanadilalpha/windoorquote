@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BarChart3,
   Factory,
   GlobeLock,
   Home,
@@ -21,6 +22,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const nav = [
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/home", label: "Home", icon: Home },
   { href: "/admin/manufacturing", label: "Manufacturing", icon: Factory },
   { href: "/admin/privacy", label: "Privacy", icon: Shield },

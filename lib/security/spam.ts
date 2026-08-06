@@ -27,16 +27,20 @@ export function evaluateContactSpam(options: {
     return { blocked: true, silent: true, reason: "honeypot" };
   }
 
-  if (settings.min_submit_seconds > 0 && formStartedAt) {
+  if (settings.min_submit_seconds > 0) {
     const started = Number(formStartedAt);
-    if (Number.isFinite(started)) {
-      const elapsedSec = (Date.now() - started) / 1000;
-      if (elapsedSec >= 0 && elapsedSec < settings.min_submit_seconds) {
-        return {
-          blocked: true,
-          reason: "Please wait a moment and try again.",
-        };
-      }
+    if (!formStartedAt || !Number.isFinite(started)) {
+      return {
+        blocked: true,
+        reason: "Please wait a moment and try again.",
+      };
+    }
+    const elapsedSec = (Date.now() - started) / 1000;
+    if (elapsedSec < 0 || elapsedSec < settings.min_submit_seconds) {
+      return {
+        blocked: true,
+        reason: "Please wait a moment and try again.",
+      };
     }
   }
 
@@ -76,20 +80,21 @@ export function isIpRateLimited(
   if (!settings.spam_protection_enabled || !settings.rate_limit_enabled) {
     return false;
   }
-  if (!ip) return false;
+  // Missing IP still rates against a shared bucket so bots can't skip limits.
+  const key = ip || "unknown";
 
   const buckets = getIpBuckets();
   const now = Date.now();
   const windowMs = settings.rate_limit_window_minutes * 60_000;
-  const bucket = buckets.get(ip) ?? { timestamps: [] };
+  const bucket = buckets.get(key) ?? { timestamps: [] };
   const recent = bucket.timestamps.filter((t) => now - t < windowMs);
 
   if (recent.length >= settings.rate_limit_max) {
-    buckets.set(ip, { timestamps: recent });
+    buckets.set(key, { timestamps: recent });
     return true;
   }
 
   recent.push(now);
-  buckets.set(ip, { timestamps: recent });
+  buckets.set(key, { timestamps: recent });
   return false;
 }

@@ -18,7 +18,22 @@ import {
 } from "@/lib/security/settings";
 import { evaluateContactSpam, isIpRateLimited } from "@/lib/security/spam";
 import { getClientIp } from "@/lib/security/request-country";
+import {
+  isCmsRowTable,
+  isCmsSettingKey,
+} from "@/lib/content/cms-tables";
 import { headers } from "next/headers";
+
+const CONTACT_LIMITS = {
+  name: 200,
+  company: 200,
+  email: 254,
+  phone: 50,
+  message: 5000,
+  source_page: 200,
+} as const;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -64,6 +79,9 @@ function normalizeEmailSettings(
 }
 
 export async function upsertSetting(key: string, value: unknown) {
+  if (!isCmsSettingKey(key)) {
+    return { error: "Unknown settings key." };
+  }
   const supabase = await requireAdmin();
   const { error } = await supabase.from("site_settings").upsert({
     key,
@@ -79,6 +97,9 @@ export async function createRow(
   table: string,
   row: Record<string, unknown>,
 ) {
+  if (!isCmsRowTable(table)) {
+    return { error: "Unknown table." };
+  }
   const supabase = await requireAdmin();
   const { data, error } = await supabase.from(table).insert(row).select().single();
   if (error) return { error: error.message };
@@ -91,6 +112,9 @@ export async function updateRow(
   id: string,
   row: Record<string, unknown>,
 ) {
+  if (!isCmsRowTable(table)) {
+    return { error: "Unknown table." };
+  }
   const supabase = await requireAdmin();
   const { error } = await supabase.from(table).update(row).eq("id", id);
   if (error) return { error: error.message };
@@ -99,6 +123,9 @@ export async function updateRow(
 }
 
 export async function deleteRow(table: string, id: string) {
+  if (!isCmsRowTable(table)) {
+    return { error: "Unknown table." };
+  }
   const supabase = await requireAdmin();
   const { error } = await supabase.from(table).delete().eq("id", id);
   if (error) return { error: error.message };
@@ -110,6 +137,9 @@ export async function reorderRows(
   table: string,
   orderedIds: string[],
 ) {
+  if (!isCmsRowTable(table)) {
+    return { error: "Unknown table." };
+  }
   const supabase = await requireAdmin();
   for (let i = 0; i < orderedIds.length; i++) {
     const { error } = await supabase
@@ -147,7 +177,7 @@ export async function deleteContact(id: string) {
 export async function submitContactForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const company = String(formData.get("company") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const phone = String(formData.get("phone") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
   const source_page = String(formData.get("source_page") ?? "/").trim();
@@ -158,6 +188,22 @@ export async function submitContactForm(formData: FormData) {
 
   if (!name || !email || !message) {
     return { error: "Name, email, and message are required." };
+  }
+  if (!EMAIL_PATTERN.test(email)) {
+    return { error: "Please enter a valid email address." };
+  }
+  if (
+    name.length > CONTACT_LIMITS.name ||
+    company.length > CONTACT_LIMITS.company ||
+    email.length > CONTACT_LIMITS.email ||
+    phone.length > CONTACT_LIMITS.phone ||
+    message.length > CONTACT_LIMITS.message ||
+    source_page.length > CONTACT_LIMITS.source_page
+  ) {
+    return { error: "One or more fields are too long." };
+  }
+  if (/[\r\n]/.test(email) || /[\r\n]/.test(name)) {
+    return { error: "Invalid characters in name or email." };
   }
 
   const adminClient = createAdminClient();

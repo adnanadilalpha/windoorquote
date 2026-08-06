@@ -1,10 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
 async function main() {
-  const s = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) {
+    console.error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    process.exit(1);
+  }
+
+  const s = createClient(url, anon);
 
   const { error } = await s.from("contact_submissions").insert({
     name: "CMS Test",
@@ -16,9 +20,18 @@ async function main() {
   });
   console.log(error ? `contact insert fail: ${error.message}` : "contact insert ok");
 
+  const email = process.env.VERIFY_ADMIN_EMAIL;
+  const password = process.env.VERIFY_ADMIN_PASSWORD;
+  if (!email || !password) {
+    console.log(
+      "skip login: set VERIFY_ADMIN_EMAIL and VERIFY_ADMIN_PASSWORD to test admin auth",
+    );
+    return;
+  }
+
   const { data: auth, error: authErr } = await s.auth.signInWithPassword({
-    email: "admin@windoorquote.com",
-    password: "WdqAdmin2026!",
+    email,
+    password,
   });
   console.log(
     authErr

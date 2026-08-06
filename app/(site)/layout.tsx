@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HashScroll from "@/components/HashScroll";
 import ScrollProgress from "@/components/ScrollProgress";
+import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 import {
   fallbacks,
   getNavLinks,
@@ -23,12 +24,12 @@ export default async function SiteLayout({
   ]);
 
   return (
-    <>
+    <AnalyticsProvider>
       <ScrollProgress />
       <HashScroll />
       <Header navLinks={navLinks} header={header} />
       <div className="page-shell">{children}</div>
       <Footer footer={footer} />
-    </>
+    </AnalyticsProvider>
   );
 }

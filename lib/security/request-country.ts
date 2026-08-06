@@ -1,11 +1,12 @@
 import type { NextRequest } from "next/server";
 
-/** Resolve visitor country from Vercel / CDN headers (ISO 3166-1 alpha-2). */
+/** Resolve visitor country from platform-set CDN headers (ISO 3166-1 alpha-2). */
 export function getRequestCountry(request: NextRequest): string | null {
+  // Only trust headers set by the hosting edge (Vercel / Cloudflare).
+  // Do not trust client-spoofable custom headers like x-country-code.
   const fromHeader =
     request.headers.get("x-vercel-ip-country") ||
-    request.headers.get("cf-ipcountry") ||
-    request.headers.get("x-country-code");
+    request.headers.get("cf-ipcountry");
 
   const code = (fromHeader || "").trim().toUpperCase();
   if (!code || code === "XX" || code === "T1") return null;

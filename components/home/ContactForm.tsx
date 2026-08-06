@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useState, useTransition } from "react";
 import { submitContactForm } from "@/lib/actions/cms";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/event-types";
+import { trackAnalyticsEvent } from "@/lib/analytics/track-client";
 
 type ContactFormProps = {
   className?: string;
@@ -47,6 +49,10 @@ export default function ContactForm({
       setStatus("sent");
       form.reset();
       setFormStartedAt(String(Date.now()));
+      void trackAnalyticsEvent(ANALYTICS_EVENTS.CONTACT_SUBMIT, {
+        label: "Contact form",
+        metadata: { source_page: sourcePage },
+      });
     });
   }
 
@@ -85,28 +91,50 @@ export default function ContactForm({
       <div className="contact-desk-row">
         <label>
           Name
-          <input type="text" name="name" required autoComplete="name" />
+          <input
+            type="text"
+            name="name"
+            required
+            maxLength={200}
+            autoComplete="name"
+          />
         </label>
         <label>
           Company
-          <input type="text" name="company" autoComplete="organization" />
+          <input
+            type="text"
+            name="company"
+            maxLength={200}
+            autoComplete="organization"
+          />
         </label>
       </div>
 
       <div className="contact-desk-row">
         <label>
           Email Address
-          <input type="email" name="email" required autoComplete="email" />
+          <input
+            type="email"
+            name="email"
+            required
+            maxLength={254}
+            autoComplete="email"
+          />
         </label>
         <label>
           Phone
-          <input type="tel" name="phone" autoComplete="tel" />
+          <input
+            type="tel"
+            name="phone"
+            maxLength={50}
+            autoComplete="tel"
+          />
         </label>
       </div>
 
       <label>
         Message
-        <textarea name="message" rows={4} required />
+        <textarea name="message" rows={4} required maxLength={5000} />
       </label>
 
       <div className="contact-desk-actions">

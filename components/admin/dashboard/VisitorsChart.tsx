@@ -1,0 +1,90 @@
+"use client";
+
+import type { AnalyticsMetric, AnalyticsTimePoint } from "@/lib/admin/types";
+import { formatCount } from "@/lib/admin/format";
+import { cn } from "@/lib/utils";
+
+type VisitorsChartProps = {
+  data: AnalyticsTimePoint[];
+  metric: AnalyticsMetric;
+};
+
+const METRIC_LABELS: Record<AnalyticsMetric, string> = {
+  users: "unique users",
+  sessions: "sessions",
+  views: "page loads",
+};
+
+const METRIC_HEADINGS: Record<AnalyticsMetric, string> = {
+  users: "Unique users",
+  sessions: "Sessions",
+  views: "Page loads",
+};
+
+export function VisitorsChart({ data, metric }: VisitorsChartProps) {
+  const maxValue = Math.max(...data.map((point) => point.value), 1);
+  const hasData = data.some((point) => point.value > 0);
+  const metricLabel = METRIC_LABELS[metric];
+
+  if (!hasData) {
+    return (
+      <div className="flex h-full min-h-55 flex-1 items-center justify-center rounded-xl border border-dashed border-paper-300 bg-paper-50/60 px-6 text-center text-sm text-body-muted">
+        No {metricLabel} in this period yet. Browse the public site to generate
+        traffic.
+      </div>
+    );
+  }
+
+  const labelInterval = data.length > 14 ? Math.ceil(data.length / 7) : 1;
+
+  return (
+    <div className="flex h-full min-h-55 flex-col">
+      <div className="mb-3 flex items-center justify-between text-xs text-body-muted">
+        <span className="font-medium tracking-[0.08em] uppercase">
+          {METRIC_HEADINGS[metric]}
+        </span>
+        <span>Peak: {formatCount(maxValue)}</span>
+      </div>
+
+      <div className="flex flex-1 items-end gap-1 sm:gap-1.5">
+        {data.map((point, index) => {
+          const heightPercent = Math.max(
+            (point.value / maxValue) * 100,
+            point.value > 0 ? 8 : 0,
+          );
+          const showLabel =
+            index % labelInterval === 0 || index === data.length - 1;
+
+          return (
+            <div
+              key={point.key}
+              className="group flex min-w-0 flex-1 flex-col items-center justify-end"
+            >
+              <div className="mb-1 hidden font-mono text-[10px] text-navy-800/70 sm:block">
+                {point.value > 0 ? formatCount(point.value) : ""}
+              </div>
+              <div className="flex h-40 w-full items-end">
+                <div
+                  title={`${point.label}: ${formatCount(point.value)} ${metricLabel}`}
+                  className={cn(
+                    "w-full rounded-t-md bg-linear-to-t from-gold-500 to-gold-accent transition-all duration-300",
+                    "group-hover:from-gold-500/90 group-hover:to-gold-accent/90",
+                    point.value === 0 && "bg-navy-50 from-navy-50 to-navy-50",
+                  )}
+                  style={{ height: `${heightPercent}%` }}
+                />
+              </div>
+              {showLabel ? (
+                <span className="mt-2 truncate text-center text-[10px] text-body-muted sm:text-[11px]">
+                  {point.label}
+                </span>
+              ) : (
+                <span className="mt-2 h-3.5" aria-hidden />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

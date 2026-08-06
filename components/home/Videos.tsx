@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { HomeSectionLabels, Video } from "@/lib/content/types";
 import { mediaUrl } from "@/lib/content/media";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/event-types";
+import { trackAnalyticsEvent } from "@/lib/analytics/track-client";
 
 function youtubeId(url: string) {
   try {
@@ -97,7 +99,16 @@ export default function Videos({ videos, labels }: Props) {
               <button
                 type="button"
                 className="videos-lane-card"
-                onClick={() => setOpen(index)}
+                onClick={() => {
+                  setOpen(index);
+                  void trackAnalyticsEvent(ANALYTICS_EVENTS.VIDEO_PLAY, {
+                    label: video.title,
+                    metadata: {
+                      video_id: String(video.id),
+                      youtube_url: video.youtube_url.slice(0, 200),
+                    },
+                  });
+                }}
                 aria-label={`Play ${video.title} demo`}
               >
                 <span className="videos-lane-shell">

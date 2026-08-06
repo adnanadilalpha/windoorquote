@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { safeAdminNextPath } from "@/lib/security/safe-url";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -58,7 +59,7 @@ export default function LoginForm() {
       return;
     }
 
-    router.push(searchParams.get("next") || "/admin/home");
+    router.push(safeAdminNextPath(searchParams.get("next")));
     router.refresh();
   }
 

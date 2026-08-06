@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { HeaderSettings, NavLink } from "@/lib/content/types";
 import { mediaUrl } from "@/lib/content/media";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/event-types";
+import { trackAnalyticsEvent } from "@/lib/analytics/track-client";
+import { safeHref } from "@/lib/security/safe-url";
 
 type Props = {
   navLinks: NavLink[];
@@ -29,10 +32,31 @@ export default function Header({ navLinks, header }: Props) {
     };
   }, [open]);
 
+  function trackNav(label: string, href: string) {
+    void trackAnalyticsEvent(ANALYTICS_EVENTS.NAV_CLICK, {
+      label,
+      metadata: { href },
+    });
+  }
+
+  function trackCta(label: string, href: string) {
+    void trackAnalyticsEvent(ANALYTICS_EVENTS.CTA_CLICK, {
+      label,
+      metadata: { href, placement: "header" },
+    });
+  }
+
   return (
     <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
       <div className="header-inner">
-        <Link href="/" className="logo-link" onClick={() => setOpen(false)}>
+        <Link
+          href="/"
+          className="logo-link"
+          onClick={() => {
+            setOpen(false);
+            trackNav("Logo", "/");
+          }}
+        >
           <Image
             src={mediaUrl(header.logo_path) || "/images/logo.png"}
             alt={header.logo_alt || "WinDoor Quote"}
@@ -63,18 +87,30 @@ export default function Header({ navLinks, header }: Props) {
 
         <nav className={`main-nav${open ? " is-open" : ""}`}>
           <ul>
-            {navLinks.map((link) => (
-              <li key={link.id}>
-                <a href={link.href} onClick={() => setOpen(false)}>
-                  {link.label}
-                </a>
-              </li>
-            ))}
+            {navLinks.map((link) => {
+              const href = safeHref(link.href);
+              return (
+                <li key={link.id}>
+                  <a
+                    href={href}
+                    onClick={() => {
+                      setOpen(false);
+                      trackNav(link.label, href);
+                    }}
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
           <a
-            href={header.cta_href}
+            href={safeHref(header.cta_href)}
             className="header-cta"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              trackCta(header.cta_label, safeHref(header.cta_href));
+            }}
           >
             {header.cta_label}
           </a>

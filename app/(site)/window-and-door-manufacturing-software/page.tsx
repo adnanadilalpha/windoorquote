@@ -12,6 +12,8 @@ import {
   getTestimonials,
 } from "@/lib/content/queries";
 import { mediaUrl } from "@/lib/content/media";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/event-types";
+import { TrackedLink } from "@/components/analytics/TrackedLink";
 import type {
   HomeSectionLabels,
   ManufacturingCtas,
@@ -209,15 +211,27 @@ export default async function ManufacturingSoftwarePage() {
           <div className="mfg-download-copy">
             <h2>{ctas.videos.title}</h2>
             <p>{ctas.videos.body}</p>
-            <a href={ctas.videos.href} className="mfg-btn mfg-btn--ghost">
+            <TrackedLink
+              href={ctas.videos.href}
+              fallbackHref="/#demos"
+              eventName={ANALYTICS_EVENTS.CTA_CLICK}
+              label={ctas.videos.cta}
+              className="mfg-btn mfg-btn--ghost"
+            >
               {ctas.videos.cta}
-            </a>
+            </TrackedLink>
 
             <h2 className="mfg-download-second">{ctas.contact.title}</h2>
             <p>{ctas.contact.body}</p>
-            <a href={ctas.contact.href} className="mfg-btn mfg-btn--ghost">
+            <TrackedLink
+              href={ctas.contact.href}
+              fallbackHref="/#contactus"
+              eventName={ANALYTICS_EVENTS.CTA_CLICK}
+              label={ctas.contact.cta}
+              className="mfg-btn mfg-btn--ghost"
+            >
               {ctas.contact.cta}
-            </a>
+            </TrackedLink>
           </div>
           <div className="mfg-download-phone">
             <Image

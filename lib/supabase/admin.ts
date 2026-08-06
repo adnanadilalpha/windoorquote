@@ -1,6 +1,8 @@
+import "server-only";
+
 import { createClient } from "@supabase/supabase-js";
 
-/** Service-role client — server-only (seed scripts, privileged ops). */
+/** Service-role client — server-only (privileged ops). */
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key =
