@@ -14,7 +14,11 @@ export async function generateMetadata(): Promise<Metadata> {
     "privacy_meta",
     fallbacks.privacyMeta,
   );
-  return { title: meta.title, description: meta.description };
+  return {
+    title: { absolute: meta.title },
+    description: meta.description,
+    alternates: { canonical: "/privacy-policy" },
+  };
 }
 
 function Block({

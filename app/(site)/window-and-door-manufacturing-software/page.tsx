@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Features from "@/components/home/Features";
 import Testimonials from "@/components/home/Testimonials";
+import ContactForm from "@/components/home/ContactForm";
+import GeoFaq from "@/components/home/GeoFaq";
 import FlowWave from "@/components/FlowWave";
 import {
   fallbacks,
@@ -15,6 +17,7 @@ import { mediaUrl } from "@/lib/content/media";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/event-types";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
 import type {
+  HomeContact,
   HomeSectionLabels,
   ManufacturingCtas,
   ManufacturingHero,
@@ -28,7 +31,13 @@ export async function generateMetadata(): Promise<Metadata> {
     "manufacturing_meta",
     fallbacks.manufacturingMeta,
   );
-  return { title: meta.title, description: meta.description };
+  return {
+    title: { absolute: meta.title },
+    description: meta.description,
+    alternates: {
+      canonical: "/window-and-door-manufacturing-software",
+    },
+  };
 }
 
 const pairIcons = {
@@ -75,6 +84,7 @@ export default async function ManufacturingSoftwarePage() {
     features,
     testimonials,
     labels,
+    contact,
   ] = await Promise.all([
     getSetting<ManufacturingHero>(
       "manufacturing_hero",
@@ -95,6 +105,7 @@ export default async function ManufacturingSoftwarePage() {
       "home_section_labels",
       fallbacks.homeSectionLabels,
     ),
+    getSetting<HomeContact>("home_contact", fallbacks.homeContact),
   ]);
 
   return (
@@ -224,8 +235,8 @@ export default async function ManufacturingSoftwarePage() {
             <h2 className="mfg-download-second">{ctas.contact.title}</h2>
             <p>{ctas.contact.body}</p>
             <TrackedLink
-              href={ctas.contact.href}
-              fallbackHref="/#contactus"
+              href="#contactus"
+              fallbackHref="#contactus"
               eventName={ANALYTICS_EVENTS.CTA_CLICK}
               label={ctas.contact.cta}
               className="mfg-btn mfg-btn--ghost"
@@ -242,6 +253,28 @@ export default async function ManufacturingSoftwarePage() {
               className="mfg-phone-art"
             />
           </div>
+        </div>
+      </section>
+
+      <GeoFaq />
+
+      <section id="contactus" className="mfg-contact">
+        <div className="mfg-contact-inner">
+          <div className="mfg-contact-head">
+            <p className="mfg-contact-kicker">{contact.kicker}</p>
+            <h2>{contact.title}</h2>
+            <p>{contact.body}</p>
+          </div>
+          <div className="contact-desk-form-head">
+            <p>{contact.form_heading}</p>
+          </div>
+          <ContactForm
+            submitLabel={contact.submit_label}
+            hint={contact.hint}
+            successMessage={contact.success_message}
+            showHint
+            sourcePage="/window-and-door-manufacturing-software"
+          />
         </div>
       </section>
     </main>

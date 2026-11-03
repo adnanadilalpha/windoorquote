@@ -1,5 +1,6 @@
 export const navLinks = [
   { label: "FEATURES", href: "/#features" },
+  { label: "SOFTWARE", href: "/window-and-door-manufacturing-software" },
   { label: "TESTIMONIALS", href: "/#testimonials" },
   { label: "OUR TEAM", href: "/#employees" },
   { label: "VIDEOS", href: "/#demos" },

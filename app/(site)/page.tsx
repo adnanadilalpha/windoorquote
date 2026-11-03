@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Hero from "@/components/home/Hero";
 import Features from "@/components/home/Features";
 import FlowWave from "@/components/FlowWave";
@@ -6,6 +7,7 @@ import Testimonials from "@/components/home/Testimonials";
 import Team from "@/components/home/Team";
 import Videos from "@/components/home/Videos";
 import About from "@/components/home/About";
+import GeoFaq from "@/components/home/GeoFaq";
 import Contact from "@/components/home/Contact";
 import {
   fallbacks,
@@ -21,9 +23,19 @@ import type {
   HomeContact,
   HomeHero,
   HomeSectionLabels,
+  SiteMeta,
 } from "@/lib/content/types";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const meta = await getSetting<SiteMeta>("site_meta", fallbacks.siteMeta);
+  return {
+    title: { absolute: meta.title },
+    description: meta.description,
+    alternates: { canonical: "/" },
+  };
+}
 
 export default async function Home() {
   const [
@@ -65,6 +77,7 @@ export default async function Home() {
       <FlowWave tone="brand" />
       <Videos videos={videos} labels={labels} />
       <About about={about} />
+      <GeoFaq />
       <Contact contact={contact} />
     </main>
   );

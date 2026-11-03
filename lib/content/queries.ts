@@ -344,7 +344,7 @@ export const fallbacks = {
       title: "Intrested in more details?",
       body: "Feel free to contact our team using the Contact Form. We will answer your question within 24 hours.",
       cta: "CONTACT US",
-      href: "/#contactus",
+      href: "#contactus",
       phone_image: "/images/manufacturing/phone-cta.png",
     },
   } satisfies ManufacturingCtas,

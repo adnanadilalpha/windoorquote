@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { getLegacyRedirects } from "./lib/legacy-redirects";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseHost = (() => {
@@ -12,11 +13,11 @@ const supabaseHost = (() => {
 const contentSecurityPolicy = [
   "default-src 'self'",
   // Next.js needs inline/eval in practice for App Router hydration without nonces
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://${supabaseHost} https://*.basemaps.cartocdn.com`,
+  `img-src 'self' data: blob: https://${supabaseHost} https://*.basemaps.cartocdn.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com`,
   "font-src 'self' data:",
-  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost}`,
+  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com`,
   "frame-src https://www.youtube.com https://youtube.com",
   `media-src 'self' https://${supabaseHost}`,
   // Leaflet map tiles need worker/blob; keep object blocked
@@ -52,6 +53,9 @@ const nextConfig: NextConfig = {
         pathname: "/storage/v1/object/public/**",
       },
     ],
+  },
+  async redirects() {
+    return getLegacyRedirects();
   },
   async headers() {
     return [
