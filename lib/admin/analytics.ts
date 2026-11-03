@@ -1,6 +1,12 @@
 import { getPageLabel } from "@/lib/admin/page-labels";
 import { filterAudiencePageViews } from "@/lib/analytics/audience";
 import {
+  ENGAGED_SESSION_SECONDS,
+  MAX_SESSION_DURATION_SECONDS,
+  clampAnalyticsDuration,
+  isLikelyAutomatedView,
+} from "@/lib/analytics/bot";
+import {
   getVisitorDedupKey,
   countActiveUsers,
   countUniqueSessions,
@@ -218,27 +224,78 @@ function metricValue(
 }
 
 function filterAudienceEvents(events: AnalyticsEventRecord[]): AnalyticsEventRecord[] {
-  return events.filter((event) => !event.is_internal);
+  return events.filter(
+    (event) => !event.is_internal && !isLikelyAutomatedView(event),
+  );
 }
 
-function computeAvgSessionDuration(views: PageViewRow[]): number {
-  const sessionTotals = new Map<string, number>();
+type SessionRollup = {
+  pageCount: number;
+  /** Max single-page dwell (capped). Using max avoids double-counting. */
+  durationSeconds: number;
+  /** True once any page view reported a non-null duration. */
+  hasDuration: boolean;
+};
+
+function buildSessionRollups(views: PageViewRow[]): Map<string, SessionRollup> {
+  const sessions = new Map<string, SessionRollup>();
 
   for (const view of views) {
-    if (typeof view.duration_seconds !== "number" || view.duration_seconds <= 0) {
-      continue;
+    const existing = sessions.get(view.session_id) ?? {
+      pageCount: 0,
+      durationSeconds: 0,
+      hasDuration: false,
+    };
+    existing.pageCount += 1;
+    if (view.duration_seconds != null) {
+      existing.hasDuration = true;
+      const capped = clampAnalyticsDuration(view.duration_seconds) ?? 0;
+      // Prefer the longest dwell on any page in the session.
+      existing.durationSeconds = Math.min(
+        MAX_SESSION_DURATION_SECONDS,
+        Math.max(existing.durationSeconds, capped),
+      );
     }
-
-    sessionTotals.set(
-      view.session_id,
-      (sessionTotals.get(view.session_id) ?? 0) + view.duration_seconds,
-    );
+    sessions.set(view.session_id, existing);
   }
 
-  const totals = [...sessionTotals.values()];
-  if (totals.length === 0) return 0;
+  return sessions;
+}
 
-  return totals.reduce((sum, value) => sum + value, 0) / totals.length;
+/**
+ * Ignore stored is_bounce — that flag was wrong for a long time
+ * (pagehide forced bounce=true even after long visits).
+ * Engagement = 2+ pages OR stayed at least 10s.
+ */
+function isEngagedSession(session: SessionRollup): boolean {
+  return (
+    session.pageCount > 1 ||
+    session.durationSeconds >= ENGAGED_SESSION_SECONDS
+  );
+}
+
+/**
+ * Sessions we can score for bounce/engagement.
+ * Single-page visits with no duration yet are incomplete (tracker never
+ * flushed) — counting them as bounces was poisoning the rate.
+ */
+function isMeasurableSession(session: SessionRollup): boolean {
+  return session.hasDuration || session.pageCount > 1;
+}
+
+function measurableSessions(views: PageViewRow[]): SessionRollup[] {
+  return [...buildSessionRollups(views).values()].filter(isMeasurableSession);
+}
+
+/** Average dwell across sessions with a recorded duration. */
+function computeAvgSessionDuration(views: PageViewRow[]): number {
+  const sessions = measurableSessions(views).filter((s) => s.hasDuration);
+  if (sessions.length === 0) return 0;
+
+  return (
+    sessions.reduce((sum, session) => sum + session.durationSeconds, 0) /
+    sessions.length
+  );
 }
 
 export function buildVisitorsOverTime(
@@ -502,33 +559,17 @@ export function buildTopEvents(
     .slice(0, limit);
 }
 
-export function computeBounceRate(views: PageViewRow[]): number {
-  const sessions = new Map<string, { count: number; bounced: boolean }>();
+export function computeEngagementRate(views: PageViewRow[]): number {
+  const sessions = measurableSessions(views);
+  if (sessions.length === 0) return 0;
 
-  for (const view of views) {
-    const existing = sessions.get(view.session_id) ?? { count: 0, bounced: true };
-    existing.count += 1;
-    if (!view.is_bounce) {
-      existing.bounced = false;
-    }
-    sessions.set(view.session_id, existing);
-  }
-
-  if (sessions.size === 0) return 0;
-
-  let bounces = 0;
-  for (const session of sessions.values()) {
-    if (session.count === 1 && session.bounced) {
-      bounces += 1;
-    }
-  }
-
-  return Math.round((bounces / sessions.size) * 100);
+  const engaged = sessions.filter(isEngagedSession).length;
+  return Math.round((engaged / sessions.length) * 100);
 }
 
-/** GA4-style engagement rate: non-bounce sessions / sessions. */
-export function computeEngagementRate(views: PageViewRow[]): number {
-  return Math.max(0, 100 - computeBounceRate(views));
+/** Bounce = measurable sessions that never engaged. */
+export function computeBounceRate(views: PageViewRow[]): number {
+  return Math.max(0, 100 - computeEngagementRate(views));
 }
 
 export function buildTrafficSources(
@@ -692,9 +733,9 @@ export async function buildAnalyticsSummary(
   const pageViewTrend = trendCopy(
     formatPercentChange(totalPageViews, previousPageViews),
   );
-  const avgDuration = computeAvgSessionDuration(currentViews);
-  const bounce = computeBounceRate(currentViews);
+  const avgSession = computeAvgSessionDuration(currentViews);
   const engagement = computeEngagementRate(currentViews);
+  const bounce = computeBounceRate(currentViews);
   const visitorLocations = await buildVisitorLocations(currentViews);
 
   return {
@@ -719,16 +760,19 @@ export async function buildAnalyticsSummary(
       ...pageViewTrend,
     },
     avgTimeOnSite: {
-      label: "Avg. Time on Site",
-      value: formatDuration(avgDuration),
+      label: "Avg. time on site",
+      value: formatDuration(avgSession),
+      trend: "Sessions with a recorded dwell time",
     },
     bounceRate: {
-      label: "Bounce Rate",
+      label: "Bounce rate",
       value: `${bounce}%`,
+      trend: "Left in under 10s · incomplete visits excluded",
     },
     engagementRate: {
       label: "Engagement rate",
       value: `${engagement}%`,
+      trend: "Stayed 10s+ or opened a second page",
     },
     visitorsOverTime: buildVisitorsOverTime(currentViews, range, "users"),
     popularPages: buildPopularPages(currentViews),

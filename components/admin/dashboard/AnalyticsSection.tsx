@@ -12,7 +12,6 @@ import type {
   AnalyticsMetric,
   AnalyticsRange,
 } from "@/lib/admin/types";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const RANGE_OPTIONS: Array<{ value: AnalyticsRange; label: string }> = [
@@ -87,10 +86,12 @@ export function AnalyticsSection({
     initialAnalytics.metric,
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadAnalytics = useCallback(
     async (nextRange: AnalyticsRange, nextMetric: AnalyticsMetric) => {
       setIsLoading(true);
+      setError(null);
 
       try {
         const params = new URLSearchParams({
@@ -102,10 +103,15 @@ export function AnalyticsSection({
           { cache: "no-store" },
         );
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          setError("Could not refresh analytics. Showing the last loaded data.");
+          return;
+        }
 
         const data = (await response.json()) as AnalyticsDashboardData;
         setAnalytics(data);
+      } catch {
+        setError("Could not refresh analytics. Showing the last loaded data.");
       } finally {
         setIsLoading(false);
       }
@@ -117,40 +123,15 @@ export function AnalyticsSection({
     void loadAnalytics(range, metric);
   }, [range, metric, loadAnalytics]);
 
-  useEffect(() => {
-    const supabase = createClient();
-
-    const channel = supabase
-      .channel("admin-analytics")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "page_views" },
-        () => {
-          void loadAnalytics(range, metric);
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "analytics_events" },
-        () => {
-          void loadAnalytics(range, metric);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [range, metric, loadAnalytics]);
-
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 max-w-2xl">
           <h2 className="text-sm font-semibold text-navy-800">Site analytics</h2>
           <p className="mt-1 text-sm text-body-muted">
-            Audience metrics are deduplicated by user and session. Page loads are
-            tracked separately and no longer inflate on refresh.
+            Bots filtered. Bounce and engagement only count visits with a
+            recorded dwell time — unfinished beacons are excluded so empty
+            durations no longer look like instant bounces.
           </p>
         </div>
 
@@ -179,6 +160,19 @@ export function AnalyticsSection({
           </div>
         </div>
       </div>
+
+      {error ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {error}
+        </p>
+      ) : null}
+
+      {!analytics.hasData ? (
+        <p className="rounded-lg border border-dashed border-navy-800/15 bg-paper-50 px-4 py-8 text-center text-sm text-body-muted">
+          No audience traffic in this range yet. New visits are recorded after
+          bot filtering.
+        </p>
+      ) : null}
 
       <div
         className={cn(
@@ -214,19 +208,23 @@ export function AnalyticsSection({
           trendPositive={analytics.pageViews.trendPositive}
         />
         <AdminStatCard
-          label={analytics.avgTimeOnSite.label}
-          value={analytics.avgTimeOnSite.value}
+          label={analytics.engagementRate.label}
+          value={analytics.engagementRate.value}
+          trend={analytics.engagementRate.trend}
+          showTrendIcon={false}
         />
         <AdminStatCard
-          label={analytics.bounceRate.label}
-          value={analytics.bounceRate.value}
+          label={analytics.avgTimeOnSite.label}
+          value={analytics.avgTimeOnSite.value}
+          trend={analytics.avgTimeOnSite.trend}
+          showTrendIcon={false}
         />
       </div>
 
       <div className="grid items-stretch gap-4 lg:grid-cols-2">
         <DashboardPanel
           title="Audience over time"
-          description="Deduped audience metrics. Refreshing the site does not add users or sessions."
+          description="Unique users, sessions, or page loads — bots excluded."
         >
           <VisitorsChart data={analytics.visitorsOverTime} metric={metric} />
         </DashboardPanel>
@@ -240,14 +238,14 @@ export function AnalyticsSection({
 
         <DashboardPanel
           title="CTA & action events"
-          description="Tracked actions from navigation, forms, and CTAs."
+          description="Navigation, forms, and CTA clicks from real visitors."
         >
           <TopEventsChart events={analytics.topEvents} />
         </DashboardPanel>
 
         <DashboardPanel
           title="Visitor locations"
-          description="Click a city to zoom the map. Ranked by unique visitors."
+          description="Click a city to zoom. Crawler hubs without engagement are hidden."
         >
           <VisitorLocationsChart locations={analytics.visitorLocations} />
         </DashboardPanel>

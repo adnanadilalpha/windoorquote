@@ -8,7 +8,11 @@ function isCountryBlockExempt(path: string) {
   return (
     path.startsWith("/admin") ||
     path === "/blocked" ||
-    path.startsWith("/api/")
+    path.startsWith("/api/") ||
+    // Crawlers must always reach discovery files, even from blocked countries.
+    path === "/robots.txt" ||
+    path === "/sitemap.xml" ||
+    path.startsWith("/sitemap/")
   );
 }
 

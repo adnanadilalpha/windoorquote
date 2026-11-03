@@ -1,8 +1,11 @@
+import { isLikelyAutomatedView } from "@/lib/analytics/bot";
 import type { PageViewRow } from "@/lib/admin/analytics";
 
-/** Reporting-layer filter: exclude internal/operator traffic from audience metrics. */
+/** Reporting-layer filter: exclude internal + likely automated junk. */
 export function filterAudiencePageViews(views: PageViewRow[]): PageViewRow[] {
-  return views.filter((view) => !view.is_internal);
+  return views.filter(
+    (view) => !view.is_internal && !isLikelyAutomatedView(view),
+  );
 }
 
 export type AnalyticsMetricKind = "user" | "session" | "event";

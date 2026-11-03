@@ -11,7 +11,7 @@ export default async function AnalyticsPage() {
       <header>
         <h1 className="admin-page-title">Analytics</h1>
         <p className="mt-1.5 text-sm text-body-muted">
-          Here&apos;s what&apos;s happening on the public site.
+          First-party audience analytics for the public site (bots filtered).
         </p>
       </header>
       <AnalyticsSection initialAnalytics={analytics} />

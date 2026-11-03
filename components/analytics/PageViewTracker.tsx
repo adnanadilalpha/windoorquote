@@ -1,5 +1,6 @@
 "use client";
 
+import { ENGAGED_SESSION_SECONDS } from "@/lib/analytics/bot";
 import {
   getOrRefreshSession,
   touchSession,
@@ -11,6 +12,7 @@ import { useEffect, useRef } from "react";
 
 const VIEW_KEY = "windoor.analytics.view";
 const SESSION_VIEWS_KEY = "windoor.analytics.session-views";
+const HEARTBEAT_MS = 10_000;
 
 type SessionViewMap = Record<string, Record<string, string>>;
 
@@ -32,6 +34,10 @@ function setSessionViewId(sessionId: string, path: string, viewId: string) {
   const map = readSessionViewMap();
   map[sessionId] = { ...(map[sessionId] ?? {}), [path]: viewId };
   sessionStorage.setItem(SESSION_VIEWS_KEY, JSON.stringify(map));
+}
+
+function countSessionPages(sessionId: string): number {
+  return Object.keys(readSessionViewMap()[sessionId] ?? {}).length;
 }
 
 async function patchPageView(
@@ -89,7 +95,9 @@ async function trackPageView(path: string, sessionId: string) {
 export function PageViewTracker() {
   const pathname = usePathname();
   const startedAtRef = useRef(Date.now());
-  const trackingRef = useRef<string | null>(null);
+  const engagedRef = useRef(false);
+  const viewIdRef = useRef<string | null>(null);
+  const activePathRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!pathname || pathname.startsWith("/admin") || !canTrackAnalytics()) {
@@ -99,61 +107,102 @@ export function PageViewTracker() {
     const path = normalizeAnalyticsPath(pathname);
     const session = getOrRefreshSession();
     const now = Date.now();
+    let cancelled = false;
 
-    if (trackingRef.current === path) {
-      return;
-    }
-    trackingRef.current = path;
-
-    const existingViewId = getSessionViewId(session.id, path);
-    const previousViewId = sessionStorage.getItem(VIEW_KEY);
+    const previousPath = activePathRef.current;
+    const previousViewId = viewIdRef.current ?? sessionStorage.getItem(VIEW_KEY);
     const previousStartedAt = startedAtRef.current;
 
-    if (previousViewId && previousViewId !== existingViewId) {
+    if (previousViewId && previousPath && previousPath !== path) {
+      const previousDuration = Math.max(
+        1,
+        Math.round((now - previousStartedAt) / 1000),
+      );
       void patchPageView(previousViewId, session.id, {
-        durationSeconds: Math.max(
-          1,
-          Math.round((now - previousStartedAt) / 1000),
-        ),
+        durationSeconds: previousDuration,
         isBounce: false,
       });
+      engagedRef.current = true;
     }
 
+    activePathRef.current = path;
     startedAtRef.current = now;
+    engagedRef.current = false;
+    viewIdRef.current = null;
+
+    const existingViewId = getSessionViewId(session.id, path);
+
+    const bindView = (viewId: string | null) => {
+      if (cancelled || activePathRef.current !== path) return;
+      viewIdRef.current = viewId;
+      if (viewId) sessionStorage.setItem(VIEW_KEY, viewId);
+    };
 
     if (existingViewId) {
-      sessionStorage.setItem(VIEW_KEY, existingViewId);
-      void patchPageView(existingViewId, session.id, {
-        isBounce: false,
-      }).finally(() => {
-        if (trackingRef.current === path) {
-          trackingRef.current = null;
-        }
-      });
+      bindView(existingViewId);
+      void patchPageView(existingViewId, session.id, { isBounce: false });
+      engagedRef.current = true;
     } else {
-      void trackPageView(path, session.id).finally(() => {
-        if (trackingRef.current === path) {
-          trackingRef.current = null;
-        }
+      void trackPageView(path, session.id).then((id) => {
+        bindView(id);
       });
     }
 
-    const handlePageHide = () => {
-      const viewId = sessionStorage.getItem(VIEW_KEY);
+    const markEngaged = () => {
+      engagedRef.current = true;
+    };
+
+    const currentDuration = () =>
+      Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000));
+
+    const persist = (isExit: boolean) => {
+      if (cancelled) return;
+      const viewId = viewIdRef.current ?? sessionStorage.getItem(VIEW_KEY);
       if (!viewId) return;
 
+      const durationSeconds = currentDuration();
+      const multiPage = countSessionPages(session.id) > 1;
+      const engaged =
+        engagedRef.current ||
+        multiPage ||
+        durationSeconds >= ENGAGED_SESSION_SECONDS;
+
       void patchPageView(viewId, session.id, {
-        durationSeconds: Math.max(
-          1,
-          Math.round((Date.now() - startedAtRef.current) / 1000),
-        ),
-        isBounce: true,
+        durationSeconds,
+        isBounce: isExit ? !engaged : false,
       });
     };
 
+    const engagementTimer = window.setTimeout(
+      markEngaged,
+      ENGAGED_SESSION_SECONDS * 1000,
+    );
+    const heartbeat = window.setInterval(() => {
+      if (currentDuration() >= ENGAGED_SESSION_SECONDS) markEngaged();
+      persist(false);
+    }, HEARTBEAT_MS);
+
+    window.addEventListener("scroll", markEngaged, { once: true, passive: true });
+    window.addEventListener("pointerdown", markEngaged, { once: true });
+    window.addEventListener("keydown", markEngaged, { once: true });
+
+    const handlePageHide = () => persist(true);
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") persist(true);
+    };
+
     window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
+      cancelled = true;
+      window.clearTimeout(engagementTimer);
+      window.clearInterval(heartbeat);
+      window.removeEventListener("scroll", markEngaged);
+      window.removeEventListener("pointerdown", markEngaged);
+      window.removeEventListener("keydown", markEngaged);
       window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [pathname]);
 

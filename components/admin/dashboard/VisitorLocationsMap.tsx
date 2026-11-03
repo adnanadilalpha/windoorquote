@@ -117,8 +117,9 @@ export function VisitorLocationsMap({
         style={{ height: MAP_HEIGHT }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
+          errorTileUrl="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
         />
         <MapViewport locations={locations} focusKey={focusKey} />
         {mappable.map((location) => {

@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  clampAnalyticsDuration,
+  isBotUserAgent,
+} from "@/lib/analytics/bot";
 import { deviceTypeFromUserAgent } from "@/lib/analytics/device";
 import { isInternalAnalyticsRequest } from "@/lib/analytics/internal-traffic";
 import { normalizeAnalyticsPath } from "@/lib/analytics/normalize-path";
@@ -14,7 +18,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const RATE_WINDOW_MS = 60_000;
 /** Page views + touches — enough for normal browsing, blocks floods. */
-const RATE_MAX_PAGE_VIEW = 60;
+const RATE_MAX_PAGE_VIEW = 40;
 
 type PageViewBody = {
   sessionId?: string;
@@ -50,7 +54,7 @@ function safeReferrer(value: unknown): string | null {
 
 function clampDuration(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  return Math.min(86_400, Math.max(0, Math.round(value)));
+  return clampAnalyticsDuration(value);
 }
 
 async function rateLimitOrReject(request: Request) {
@@ -71,6 +75,10 @@ export async function POST(request: Request) {
   const context = await getRequestAnalyticsContext(request);
 
   if (!context.shouldRecord) {
+    return NextResponse.json({ ok: true, skipped: true });
+  }
+
+  if (isBotUserAgent(request.headers.get("user-agent"))) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
@@ -196,6 +204,10 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
+  if (isBotUserAgent(request.headers.get("user-agent"))) {
+    return NextResponse.json({ ok: true, skipped: true });
+  }
+
   const limited = await rateLimitOrReject(request);
   if (limited) return limited;
 
@@ -220,17 +232,42 @@ export async function PATCH(request: Request) {
   }
 
   const supabase = createAdminClient();
+
+  const { data: existing, error: existingError } = await supabase
+    .from("page_views")
+    .select("id, duration_seconds, is_bounce")
+    .eq("id", viewId)
+    .eq("session_id", sessionId)
+    .eq("visitor_key", context.visitorKey)
+    .maybeSingle();
+
+  if (existingError) {
+    return NextResponse.json({ error: existingError.message }, { status: 500 });
+  }
+
+  if (!existing) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const updates: Record<string, unknown> = {
     last_seen_at: new Date().toISOString(),
   };
 
   const duration = clampDuration(durationSeconds);
   if (duration != null) {
-    updates.duration_seconds = duration;
+    // Never shrink a longer heartbeat / prior dwell with a short remount patch.
+    const prior =
+      typeof existing.duration_seconds === "number"
+        ? existing.duration_seconds
+        : 0;
+    updates.duration_seconds = Math.max(prior, duration);
   }
 
   if (typeof isBounce === "boolean") {
-    updates.is_bounce = isBounce;
+    // Once a session is marked engaged, don't flip it back to bounce.
+    if (isBounce === false || existing.is_bounce !== false) {
+      updates.is_bounce = isBounce;
+    }
   }
 
   const { data, error } = await supabase

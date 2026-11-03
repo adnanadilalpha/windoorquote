@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isBotUserAgent } from "@/lib/analytics/bot";
 import {
   ANALYTICS_EVENTS,
   type AnalyticsEventName,
@@ -32,6 +33,10 @@ export async function POST(request: Request) {
   const context = await getRequestAnalyticsContext(request);
 
   if (!context.shouldRecord) {
+    return NextResponse.json({ ok: true, skipped: true });
+  }
+
+  if (isBotUserAgent(request.headers.get("user-agent"))) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 

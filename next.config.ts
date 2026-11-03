@@ -15,9 +15,9 @@ const contentSecurityPolicy = [
   // Next.js needs inline/eval in practice for App Router hydration without nonces
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://${supabaseHost} https://*.basemaps.cartocdn.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com`,
+  `img-src 'self' data: blob: https://${supabaseHost} https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com`,
   "font-src 'self' data:",
-  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com`,
+  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://geocoding-api.open-meteo.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com`,
   "frame-src https://www.youtube.com https://youtube.com",
   `media-src 'self' https://${supabaseHost}`,
   // Leaflet map tiles need worker/blob; keep object blocked
@@ -45,6 +45,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Let legacy WP trailing-slash URLs hit our permanent redirects in one hop
+  // instead of Next first stripping the slash (/blog/ → /blog → destination).
+  skipTrailingSlashRedirect: true,
   images: {
     remotePatterns: [
       {
