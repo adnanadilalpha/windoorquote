@@ -81,7 +81,7 @@ export default function Features({ features, labels }: Props) {
                   <div className="features-river-icon">
                     <Image
                       src={mediaUrl(feature.image_path)}
-                      alt=""
+                      alt={`${feature.title} feature icon`}
                       width={120}
                       height={120}
                       unoptimized

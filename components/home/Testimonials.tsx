@@ -31,7 +31,7 @@ export default function Testimonials({ testimonials, labels }: Props) {
                 <span className="testimonials-stagger-logo">
                   <Image
                     src={mediaUrl(item.logo_path)}
-                    alt=""
+                    alt={`${item.author} company logo`}
                     fill
                     sizes="120px"
                   />

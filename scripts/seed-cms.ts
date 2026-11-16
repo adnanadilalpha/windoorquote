@@ -153,6 +153,38 @@ async function main() {
       },
     },
     {
+      key: "home_faq",
+      value: {
+        kicker: "FAQ",
+        title: "Frequently asked questions",
+        lead: "Straight answers for manufacturers looking at window and door quoting software.",
+        cta_label: "Talk with the team",
+        cta_href: "#contactus",
+        items: [
+          {
+            question: "What is WinDoor Quote?",
+            answer:
+              "WinDoor Quote (WDQ) is cloud-based ERP and quoting software for window, door, screen, and partition manufacturers. It helps shops quote faster, schedule production, manage inventory, and connect dealers in one system.",
+          },
+          {
+            question: "Who is WinDoor Quote for?",
+            answer:
+              "WDQ is built for fenestration manufacturers and their dealer networks who need accurate quoting, CNC integration, production scheduling, inventory, payments, and accounting connections.",
+          },
+          {
+            question: "Where is WinDoor Quote based?",
+            answer:
+              "WinDoor Quote is based in Omaha, Nebraska, and serves window and door manufacturers across the United States and Canada.",
+          },
+          {
+            question: "How do I get a demo or talk to the team?",
+            answer:
+              "Use the contact form on this site to request a conversation. The team typically replies within one business day.",
+          },
+        ],
+      },
+    },
+    {
       key: "home_section_labels",
       value: {
         features_kicker: "Capabilities",

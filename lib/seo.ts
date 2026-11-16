@@ -11,29 +11,6 @@ export function absoluteUrl(path = "/"): string {
 const CONTACT_URL = absoluteUrl("/#contactus");
 const MFG_URL = absoluteUrl("/window-and-door-manufacturing-software");
 
-export const GEO_FAQS = [
-  {
-    question: "What is WinDoor Quote?",
-    answer:
-      "WinDoor Quote (WDQ) is cloud-based ERP and quoting software for window, door, screen, and partition manufacturers. It helps shops quote faster, schedule production, manage inventory, and connect dealers in one system.",
-  },
-  {
-    question: "Who is WinDoor Quote for?",
-    answer:
-      "WDQ is built for fenestration manufacturers and their dealer networks who need accurate quoting, CNC integration, production scheduling, inventory, payments, and accounting connections.",
-  },
-  {
-    question: "Where is WinDoor Quote based?",
-    answer:
-      "WinDoor Quote is based in Omaha, Nebraska, and serves window and door manufacturers across the United States and Canada.",
-  },
-  {
-    question: "How do I get a demo or talk to the team?",
-    answer:
-      "Use the contact form on windoorquote.com to request a conversation. The team typically replies within one business day.",
-  },
-] as const;
-
 export function organizationJsonLd() {
   return {
     "@context": "https://schema.org",
@@ -129,16 +106,23 @@ export function softwareApplicationJsonLd() {
   };
 }
 
-export function faqJsonLd() {
+export function faqJsonLd(
+  items: Array<{ question: string; answer: string }>,
+) {
+  const questions = items.filter(
+    (item) => item.question.trim() && item.answer.trim(),
+  );
+  if (questions.length === 0) return null;
+
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: GEO_FAQS.map((item) => ({
+    mainEntity: questions.map((item) => ({
       "@type": "Question",
-      name: item.question,
+      name: item.question.trim(),
       acceptedAnswer: {
         "@type": "Answer",
-        text: item.answer,
+        text: item.answer.trim(),
       },
     })),
   };

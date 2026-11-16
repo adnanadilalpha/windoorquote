@@ -120,7 +120,7 @@ export default function Videos({ videos, labels }: Props) {
                     <span className="videos-lane-thumb media-fill">
                       <Image
                         src={mediaUrl(video.thumb_path)}
-                        alt=""
+                        alt={`${video.title} video demo thumbnail`}
                         fill
                         sizes="(max-width: 700px) 100vw, (max-width: 980px) 50vw, 33vw"
                         unoptimized={video.thumb_path.endsWith(".gif")}

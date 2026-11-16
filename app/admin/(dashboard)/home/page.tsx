@@ -4,6 +4,7 @@ import { fallbacks } from "@/lib/content/queries";
 import type {
   HomeAbout,
   HomeContact,
+  HomeFaq,
   HomeHero,
   HomeSectionLabels,
 } from "@/lib/content/types";
@@ -20,6 +21,7 @@ export default async function HomeAdminPage({ searchParams }: Props) {
     { data: heroRow },
     { data: labelsRow },
     { data: aboutRow },
+    { data: faqRow },
     { data: contactRow },
     { data: features },
     { data: clients },
@@ -34,6 +36,7 @@ export default async function HomeAdminPage({ searchParams }: Props) {
       .eq("key", "home_section_labels")
       .maybeSingle(),
     supabase.from("site_settings").select("value").eq("key", "home_about").maybeSingle(),
+    supabase.from("site_settings").select("value").eq("key", "home_faq").maybeSingle(),
     supabase
       .from("site_settings")
       .select("value")
@@ -59,6 +62,7 @@ export default async function HomeAdminPage({ searchParams }: Props) {
       team={team ?? []}
       videos={videos ?? []}
       about={(aboutRow?.value as HomeAbout) ?? fallbacks.homeAbout}
+      faq={(faqRow?.value as HomeFaq) ?? fallbacks.homeFaq}
       contact={(contactRow?.value as HomeContact) ?? fallbacks.homeContact}
     />
   );

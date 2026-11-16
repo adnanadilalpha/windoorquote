@@ -5,9 +5,7 @@ import {
   SITE_NAME,
   SITE_URL,
   absoluteUrl,
-  faqJsonLd,
   organizationJsonLd,
-  softwareApplicationJsonLd,
   websiteJsonLd,
 } from "@/lib/seo";
 import "./globals.css";
@@ -26,17 +24,11 @@ export const metadata: Metadata = {
   },
   description:
     "Taking the complex and making it simple. WDQ is a cloud based ERP Window and Door Quoting Software for manufacturers that is fast, reliable, and intuitive.",
-  alternates: {
-    canonical: "/",
-  },
+  // Per-page generateMetadata supplies canonical + og:url/title/description.
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: SITE_URL,
     siteName: SITE_NAME,
-    title: "Cloud Based Window and Door Quoting Software • WinDoor Quote",
-    description:
-      "Cloud based ERP and quoting software for window, door, and screen manufacturers — fast, reliable, flexible, and intuitive.",
     images: [
       {
         url: absoluteUrl("/images/hero.jpg"),
@@ -48,13 +40,19 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cloud Based Window and Door Quoting Software • WinDoor Quote",
-    description:
-      "Cloud based ERP and quoting software for window, door, and screen manufacturers.",
   },
   robots: {
     index: true,
     follow: true,
+  },
+  icons: {
+    icon: [{ url: "/favicon.ico" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "default",
   },
 };
 
@@ -70,14 +68,7 @@ export default function RootLayout({
       className={`${openSans.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <JsonLd
-          data={[
-            organizationJsonLd(),
-            websiteJsonLd(),
-            softwareApplicationJsonLd(),
-            faqJsonLd(),
-          ]}
-        />
+        <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         {children}
       </body>
     </html>

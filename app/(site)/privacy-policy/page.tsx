@@ -6,19 +6,20 @@ import {
 } from "@/lib/content/queries";
 import type { PrivacyMetaSettings } from "@/lib/content/types";
 import { safeHref } from "@/lib/security/safe-url";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   const meta = await getSetting<PrivacyMetaSettings>(
     "privacy_meta",
     fallbacks.privacyMeta,
   );
-  return {
-    title: { absolute: meta.title },
+  return buildPageMetadata({
+    title: meta.title,
     description: meta.description,
-    alternates: { canonical: "/privacy-policy" },
-  };
+    path: "/privacy-policy",
+  });
 }
 
 function Block({

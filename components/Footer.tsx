@@ -9,7 +9,7 @@ export default function Footer({ footer }: { footer: FooterSettings }) {
     <footer className="site-footer">
       <div className="footer-inner">
         <p>
-          Copyright @ {footer.copyright_year} -{" "}
+          Copyright © {footer.copyright_year} -{" "}
           <TrackedLink
             href={footer.brand_href}
             fallbackHref="/"

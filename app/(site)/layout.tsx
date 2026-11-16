@@ -11,7 +11,8 @@ import {
 } from "@/lib/content/queries";
 import type { FooterSettings, HeaderSettings } from "@/lib/content/types";
 
-export const dynamic = "force-dynamic";
+/** Revalidate CMS-backed chrome periodically so pages can be cached. */
+export const revalidate = 300;
 
 export default async function SiteLayout({
   children,

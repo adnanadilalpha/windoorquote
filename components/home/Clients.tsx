@@ -102,7 +102,7 @@ export default function Clients({ clients, labels }: Props) {
         >
           <Image
             src={mediaUrl(active.client.logo_path)}
-            alt=""
+            alt={`${active.client.name} logo`}
             width={400}
             height={180}
             className="clients-stage-img"

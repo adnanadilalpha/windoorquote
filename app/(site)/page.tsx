@@ -9,6 +9,7 @@ import Videos from "@/components/home/Videos";
 import About from "@/components/home/About";
 import GeoFaq from "@/components/home/GeoFaq";
 import Contact from "@/components/home/Contact";
+import JsonLd from "@/components/JsonLd";
 import {
   fallbacks,
   getClients,
@@ -18,29 +19,33 @@ import {
   getTestimonials,
   getVideos,
 } from "@/lib/content/queries";
+import { faqJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import type {
   HomeAbout,
   HomeContact,
+  HomeFaq,
   HomeHero,
   HomeSectionLabels,
   SiteMeta,
 } from "@/lib/content/types";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   const meta = await getSetting<SiteMeta>("site_meta", fallbacks.siteMeta);
-  return {
-    title: { absolute: meta.title },
+  return buildPageMetadata({
+    title: meta.title,
     description: meta.description,
-    alternates: { canonical: "/" },
-  };
+    path: "/",
+  });
 }
 
 export default async function Home() {
   const [
     hero,
     about,
+    faq,
     contact,
     labels,
     features,
@@ -51,6 +56,7 @@ export default async function Home() {
   ] = await Promise.all([
     getSetting<HomeHero>("home_hero", fallbacks.homeHero),
     getSetting<HomeAbout>("home_about", fallbacks.homeAbout),
+    getSetting<HomeFaq>("home_faq", fallbacks.homeFaq),
     getSetting<HomeContact>("home_contact", fallbacks.homeContact),
     getSetting<HomeSectionLabels>(
       "home_section_labels",
@@ -65,6 +71,7 @@ export default async function Home() {
 
   return (
     <main className="story-flow">
+      <JsonLd data={[softwareApplicationJsonLd(), faqJsonLd(faq.items)]} />
       <Hero hero={hero} />
       <FlowWave tone="brand" />
       <Features features={features} labels={labels} />
@@ -77,7 +84,7 @@ export default async function Home() {
       <FlowWave tone="brand" />
       <Videos videos={videos} labels={labels} />
       <About about={about} />
-      <GeoFaq />
+      <GeoFaq faq={faq} />
       <Contact contact={contact} />
     </main>
   );

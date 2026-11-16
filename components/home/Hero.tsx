@@ -16,7 +16,7 @@ export default function Hero({ hero }: { hero: HomeHero }) {
       <div className="hero-media media-fill" aria-hidden="true">
         <Image
           src={mediaUrl(hero.image) || "/images/hero.jpg"}
-          alt=""
+          alt="Cloud based window and door quoting software from WinDoor Quote"
           fill
           priority
           sizes="100vw"

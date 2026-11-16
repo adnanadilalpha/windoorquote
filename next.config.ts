@@ -45,8 +45,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Let legacy WP trailing-slash URLs hit our permanent redirects in one hop
-  // instead of Next first stripping the slash (/blog/ → /blog → destination).
+  // Canonical URLs have no trailing slash. Middleware owns the 308 strip so
+  // spam paths can return 410 in one hop (Next's built-in slash redirect
+  // would otherwise run first and hide the Gone response).
+  trailingSlash: false,
   skipTrailingSlashRedirect: true,
   images: {
     remotePatterns: [
@@ -65,6 +67,24 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+      {
+        source: "/images/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/apple-touch-icon.png",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400",
+          },
+        ],
       },
     ];
   },

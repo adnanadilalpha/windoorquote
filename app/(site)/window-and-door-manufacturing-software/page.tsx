@@ -5,6 +5,7 @@ import Testimonials from "@/components/home/Testimonials";
 import ContactForm from "@/components/home/ContactForm";
 import GeoFaq from "@/components/home/GeoFaq";
 import FlowWave from "@/components/FlowWave";
+import JsonLd from "@/components/JsonLd";
 import {
   fallbacks,
   getFeatures,
@@ -16,28 +17,29 @@ import {
 import { mediaUrl } from "@/lib/content/media";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/event-types";
 import { TrackedLink } from "@/components/analytics/TrackedLink";
+import { faqJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import type {
   HomeContact,
+  HomeFaq,
   HomeSectionLabels,
   ManufacturingCtas,
   ManufacturingHero,
   SiteMeta,
 } from "@/lib/content/types";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   const meta = await getSetting<SiteMeta>(
     "manufacturing_meta",
     fallbacks.manufacturingMeta,
   );
-  return {
-    title: { absolute: meta.title },
+  return buildPageMetadata({
+    title: meta.title,
     description: meta.description,
-    alternates: {
-      canonical: "/window-and-door-manufacturing-software",
-    },
-  };
+    path: "/window-and-door-manufacturing-software",
+  });
 }
 
 const pairIcons = {
@@ -84,6 +86,7 @@ export default async function ManufacturingSoftwarePage() {
     features,
     testimonials,
     labels,
+    faq,
     contact,
   ] = await Promise.all([
     getSetting<ManufacturingHero>(
@@ -105,11 +108,13 @@ export default async function ManufacturingSoftwarePage() {
       "home_section_labels",
       fallbacks.homeSectionLabels,
     ),
+    getSetting<HomeFaq>("home_faq", fallbacks.homeFaq),
     getSetting<HomeContact>("home_contact", fallbacks.homeContact),
   ]);
 
   return (
     <main className="mfg-page">
+      <JsonLd data={[softwareApplicationJsonLd(), faqJsonLd(faq.items)]} />
       <section className="mfg-hero">
         <div className="mfg-hero-inner">
           <div className="mfg-hero-copy">
@@ -122,7 +127,7 @@ export default async function ManufacturingSoftwarePage() {
           <div className="mfg-hero-art">
             <Image
               src={mediaUrl(hero.image)}
-              alt=""
+              alt="WinDoor Quote window and door manufacturing software illustration"
               width={560}
               height={420}
               priority
@@ -155,7 +160,7 @@ export default async function ManufacturingSoftwarePage() {
           <div className="mfg-split-art">
             <Image
               src={mediaUrl(oneApp.image)}
-              alt=""
+              alt="All-in-one WinDoor Quote app for manufacturers"
               width={520}
               height={420}
               className="mfg-split-illustration"
@@ -203,7 +208,7 @@ export default async function ManufacturingSoftwarePage() {
           <div className="mfg-split-art">
             <Image
               src={mediaUrl(cutOnce.image)}
-              alt=""
+              alt="Precise CNC cut parameters in WinDoor Quote"
               width={520}
               height={420}
               className="mfg-split-illustration"
@@ -247,7 +252,7 @@ export default async function ManufacturingSoftwarePage() {
           <div className="mfg-download-phone">
             <Image
               src={mediaUrl(ctas.contact.phone_image)}
-              alt=""
+              alt="WinDoor Quote mobile quoting app on a phone"
               width={320}
               height={520}
               className="mfg-phone-art"
@@ -256,7 +261,7 @@ export default async function ManufacturingSoftwarePage() {
         </div>
       </section>
 
-      <GeoFaq />
+      <GeoFaq faq={faq} />
 
       <section id="contactus" className="mfg-contact">
         <div className="mfg-contact-inner">

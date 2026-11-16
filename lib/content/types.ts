@@ -5,6 +5,7 @@ export type SiteSettingKey =
   | "home_hero"
   | "home_about"
   | "home_contact"
+  | "home_faq"
   | "home_section_labels"
   | "manufacturing_meta"
   | "manufacturing_hero"
@@ -199,6 +200,20 @@ export type HomeContact = {
   submit_label: string;
   hint: string;
   success_message: string;
+};
+
+export type HomeFaqItem = {
+  question: string;
+  answer: string;
+};
+
+export type HomeFaq = {
+  kicker: string;
+  title: string;
+  lead: string;
+  cta_label: string;
+  cta_href: string;
+  items: HomeFaqItem[];
 };
 
 export type HomeSectionLabels = {

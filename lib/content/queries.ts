@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import {
   clients as staticClients,
   features as staticFeatures,
@@ -18,6 +18,7 @@ import type {
   Feature,
   HomeAbout,
   HomeContact,
+  HomeFaq,
   HomeHero,
   HomeSectionLabels,
   ManufacturingCard,
@@ -48,7 +49,7 @@ async function safeQuery<T>(
 }
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const data = await safeQuery<{ value: T }>(() =>
     supabase.from("site_settings").select("value").eq("key", key).maybeSingle(),
   );
@@ -57,7 +58,7 @@ export async function getSetting<T>(key: string, fallback: T): Promise<T> {
 }
 
 export async function getNavLinks(): Promise<NavLink[]> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const data = await safeQuery(() =>
     supabase.from("nav_links").select("*").order("sort_order"),
   );
@@ -66,7 +67,7 @@ export async function getNavLinks(): Promise<NavLink[]> {
 }
 
 export async function getFeatures(): Promise<Feature[]> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const data = await safeQuery(() =>
     supabase.from("features").select("*").order("sort_order"),
   );
@@ -75,7 +76,7 @@ export async function getFeatures(): Promise<Feature[]> {
 }
 
 export async function getClients(): Promise<Client[]> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const data = await safeQuery(() =>
     supabase.from("clients").select("*").order("sort_order"),
   );
@@ -84,7 +85,7 @@ export async function getClients(): Promise<Client[]> {
 }
 
 export async function getTestimonials(): Promise<Testimonial[]> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const data = await safeQuery(() =>
     supabase.from("testimonials").select("*").order("sort_order"),
   );
@@ -93,7 +94,7 @@ export async function getTestimonials(): Promise<Testimonial[]> {
 }
 
 export async function getTeamMembers(): Promise<TeamMember[]> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const data = await safeQuery(() =>
     supabase.from("team_members").select("*").order("sort_order"),
   );
@@ -102,7 +103,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 }
 
 export async function getVideos(): Promise<Video[]> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const data = await safeQuery(() =>
     supabase.from("videos").select("*").order("sort_order"),
   );
@@ -113,7 +114,7 @@ export async function getVideos(): Promise<Video[]> {
 export async function getManufacturingPartners(): Promise<
   ManufacturingPartner[]
 > {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const data = await safeQuery(() =>
     supabase.from("manufacturing_partners").select("*").order("sort_order"),
   );
@@ -124,7 +125,7 @@ export async function getManufacturingPartners(): Promise<
 export async function getManufacturingCards(
   section: "one_app" | "cut_once",
 ): Promise<ManufacturingCard[]> {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const data = await safeQuery(() =>
     supabase
       .from("manufacturing_cards")
@@ -139,7 +140,7 @@ export async function getManufacturingCards(
 export async function getPrivacyContent(): Promise<
   { section: PrivacySection; blocks: PrivacyBlock[] }[]
 > {
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const sections = await safeQuery(() =>
     supabase.from("privacy_sections").select("*").order("sort_order"),
   );
@@ -300,6 +301,35 @@ export const fallbacks = {
     hint: "We'll reply within one business day.",
     success_message: "Thank you. Your message has been received.",
   } satisfies HomeContact,
+  homeFaq: {
+    kicker: "FAQ",
+    title: "Frequently asked questions",
+    lead: "Straight answers for manufacturers looking at window and door quoting software.",
+    cta_label: "Talk with the team",
+    cta_href: "#contactus",
+    items: [
+      {
+        question: "What is WinDoor Quote?",
+        answer:
+          "WinDoor Quote (WDQ) is cloud-based ERP and quoting software for window, door, screen, and partition manufacturers. It helps shops quote faster, schedule production, manage inventory, and connect dealers in one system.",
+      },
+      {
+        question: "Who is WinDoor Quote for?",
+        answer:
+          "WDQ is built for fenestration manufacturers and their dealer networks who need accurate quoting, CNC integration, production scheduling, inventory, payments, and accounting connections.",
+      },
+      {
+        question: "Where is WinDoor Quote based?",
+        answer:
+          "WinDoor Quote is based in Omaha, Nebraska, and serves window and door manufacturers across the United States and Canada.",
+      },
+      {
+        question: "How do I get a demo or talk to the team?",
+        answer:
+          "Use the contact form on this site to request a conversation. The team typically replies within one business day.",
+      },
+    ],
+  } satisfies HomeFaq,
   homeSectionLabels: {
     features_kicker: "Capabilities",
     features_title: "FEATURES",

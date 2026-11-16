@@ -6,12 +6,14 @@ import SettingsForm from "@/components/admin/SettingsForm";
 import CollectionEditor from "@/components/admin/CollectionEditor";
 import AboutEditor from "@/components/admin/AboutEditor";
 import ContactCopyEditor from "@/components/admin/ContactCopyEditor";
+import FaqEditor from "@/components/admin/FaqEditor";
 import { cn } from "@/lib/utils";
 import type {
   Client,
   Feature,
   HomeAbout,
   HomeContact,
+  HomeFaq,
   HomeHero,
   HomeSectionLabels,
   TeamMember,
@@ -27,6 +29,7 @@ const TABS = [
   { id: "team", label: "Team" },
   { id: "videos", label: "Videos" },
   { id: "about", label: "About" },
+  { id: "faq", label: "FAQ" },
   { id: "contact", label: "Contact" },
 ] as const;
 
@@ -42,6 +45,7 @@ type Props = {
   team: TeamMember[];
   videos: Video[];
   about: HomeAbout;
+  faq: HomeFaq;
   contact: HomeContact;
 };
 
@@ -55,6 +59,7 @@ export default function HomeSectionsEditor({
   team,
   videos,
   about,
+  faq,
   contact,
 }: Props) {
   const router = useRouter();
@@ -287,6 +292,17 @@ export default function HomeSectionsEditor({
         <div className="admin-card">
           <h2>About</h2>
           <AboutEditor initial={about} />
+        </div>
+      ) : null}
+
+      {tab === "faq" ? (
+        <div className="admin-card">
+          <h2>FAQ</h2>
+          <p className="mb-3 text-sm text-body-muted">
+            Section copy and questions shown on the home and manufacturing
+            pages. Add, edit, reorder, or remove questions anytime.
+          </p>
+          <FaqEditor initial={faq} />
         </div>
       ) : null}
 

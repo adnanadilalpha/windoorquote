@@ -29,6 +29,7 @@ export const CMS_SETTING_KEYS = [
   "home_section_labels",
   "home_about",
   "home_contact",
+  "home_faq",
   "privacy_meta",
   "manufacturing_meta",
   "manufacturing_hero",
