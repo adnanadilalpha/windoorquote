@@ -4,6 +4,7 @@ import HashScroll from "@/components/HashScroll";
 import ScrollProgress from "@/components/ScrollProgress";
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import MicrosoftClarity from "@/components/analytics/MicrosoftClarity";
 import {
   fallbacks,
   getNavLinks,
@@ -28,6 +29,7 @@ export default async function SiteLayout({
   return (
     <AnalyticsProvider>
       <GoogleAnalytics />
+      <MicrosoftClarity />
       <ScrollProgress />
       <HashScroll />
       <Header navLinks={navLinks} header={header} />

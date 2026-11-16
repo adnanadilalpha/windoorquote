@@ -107,6 +107,7 @@ export default function ContactForm({
             required
             maxLength={200}
             autoComplete="name"
+            data-clarity-mask="true"
           />
         </label>
         <label>
@@ -116,6 +117,7 @@ export default function ContactForm({
             name="company"
             maxLength={200}
             autoComplete="organization"
+            data-clarity-mask="true"
           />
         </label>
       </div>
@@ -129,6 +131,7 @@ export default function ContactForm({
             required
             maxLength={254}
             autoComplete="email"
+            data-clarity-mask="true"
           />
         </label>
         <label>
@@ -138,13 +141,20 @@ export default function ContactForm({
             name="phone"
             maxLength={50}
             autoComplete="tel"
+            data-clarity-mask="true"
           />
         </label>
       </div>
 
       <label>
         Message
-        <textarea name="message" rows={4} required maxLength={5000} />
+        <textarea
+          name="message"
+          rows={4}
+          required
+          maxLength={5000}
+          data-clarity-mask="true"
+        />
       </label>
 
       <div className="contact-desk-actions">

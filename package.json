@@ -11,6 +11,7 @@
     "create-admin": "tsx --env-file=.env.local scripts/create-admin.ts"
   },
   "dependencies": {
+    "@microsoft/clarity": "^1.0.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.49.8",
     "clsx": "^2.1.1",

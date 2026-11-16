@@ -33,8 +33,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# supabase
-supabase/
+# supabase CLI local folder only (do not ignore lib/supabase/*)
+/supabase/
 
 # vercel
 .vercel

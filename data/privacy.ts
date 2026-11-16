@@ -111,6 +111,16 @@ export const privacySections: {
         },
         after: ".",
       },
+      {
+        type: "plink",
+        before:
+          "We use Microsoft Clarity to understand how visitors use our website through session recordings and heatmaps. Clarity may collect device and usage data. Learn more in the ",
+        link: {
+          href: "https://privacy.microsoft.com/privacystatement",
+          label: "Microsoft Privacy Statement",
+        },
+        after: ".",
+      },
     ],
   },
   {
