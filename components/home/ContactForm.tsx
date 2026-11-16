@@ -3,7 +3,10 @@
 import { FormEvent, useEffect, useState, useTransition } from "react";
 import { submitContactForm } from "@/lib/actions/cms";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/event-types";
-import { trackGtagEvent } from "@/lib/analytics/gtag";
+import {
+  trackGoogleAdsConversion,
+  trackGtagEvent,
+} from "@/lib/analytics/gtag";
 import { trackAnalyticsEvent } from "@/lib/analytics/track-client";
 
 type ContactFormProps = {
@@ -63,6 +66,7 @@ export default function ContactForm({
         event_category: "conversion",
         event_label: sourcePage,
       });
+      trackGoogleAdsConversion();
     });
   }
 
