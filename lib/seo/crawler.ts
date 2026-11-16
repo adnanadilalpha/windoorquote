@@ -1,9 +1,12 @@
 import type { NextRequest } from "next/server";
 import { getClientIp } from "@/lib/security/request-country";
 
-/** Well-known search crawler user agents (geo-block must never apply). */
+/**
+ * Search + Google Ads verification bots (geo-block must never apply).
+ * AdsBot must see the live site with the AW- tag; otherwise Ads stays on “Set up”.
+ */
 const SEARCH_BOT_UA =
-  /Googlebot|Google-InspectionTool|Bingbot|DuckDuckBot|Slurp|Applebot|Yandex(Bot|Images)|Baiduspider/i;
+  /Googlebot|Google-InspectionTool|AdsBot-Google|Google-Ads|Mediapartners-Google|Bingbot|DuckDuckBot|Slurp|Applebot|Yandex(Bot|Images)|Baiduspider/i;
 
 function isPrivateOrLocalIp(ip: string): boolean {
   const n = ip.toLowerCase();
@@ -22,6 +25,7 @@ function isVerifiedBotHostname(hostname: string): boolean {
   return (
     h.endsWith(".googlebot.com") ||
     h.endsWith(".google.com") ||
+    h.endsWith(".googleusercontent.com") ||
     h.endsWith(".search.msn.com") ||
     h === "googlebot.com" ||
     h === "google.com" ||

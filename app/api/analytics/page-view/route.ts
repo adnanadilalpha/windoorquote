@@ -233,24 +233,28 @@ export async function PATCH(request: Request) {
 
   const supabase = createAdminClient();
 
+  // Match on view + session only. visitor_key can drift mid-session when the
+  // client IP / UA hash changes (mobile, CGNAT, privacy proxies).
   const { data: existing, error: existingError } = await supabase
     .from("page_views")
     .select("id, duration_seconds, is_bounce")
     .eq("id", viewId)
     .eq("session_id", sessionId)
-    .eq("visitor_key", context.visitorKey)
     .maybeSingle();
 
   if (existingError) {
     return NextResponse.json({ error: existingError.message }, { status: 500 });
   }
 
+  // Heartbeats often race a skipped POST or hold a stale sessionStorage id.
+  // Treat missing rows as a soft skip so the browser console stays clean.
   if (!existing) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
+    return NextResponse.json({ ok: true, skipped: true });
   }
 
   const updates: Record<string, unknown> = {
     last_seen_at: new Date().toISOString(),
+    visitor_key: context.visitorKey,
   };
 
   const duration = clampDuration(durationSeconds);
@@ -275,7 +279,6 @@ export async function PATCH(request: Request) {
     .update(updates)
     .eq("id", viewId)
     .eq("session_id", sessionId)
-    .eq("visitor_key", context.visitorKey)
     .select("id")
     .maybeSingle();
 
@@ -284,7 +287,7 @@ export async function PATCH(request: Request) {
   }
 
   if (!data) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
+    return NextResponse.json({ ok: true, skipped: true });
   }
 
   return NextResponse.json({ ok: true });

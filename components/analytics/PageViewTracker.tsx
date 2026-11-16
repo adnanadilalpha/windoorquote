@@ -36,6 +36,19 @@ function setSessionViewId(sessionId: string, path: string, viewId: string) {
   sessionStorage.setItem(SESSION_VIEWS_KEY, JSON.stringify(map));
 }
 
+function clearSessionViewId(sessionId: string, path: string) {
+  const map = readSessionViewMap();
+  const sessionViews = map[sessionId];
+  if (!sessionViews?.[path]) return;
+  delete sessionViews[path];
+  if (Object.keys(sessionViews).length === 0) {
+    delete map[sessionId];
+  } else {
+    map[sessionId] = sessionViews;
+  }
+  sessionStorage.setItem(SESSION_VIEWS_KEY, JSON.stringify(map));
+}
+
 function countSessionPages(sessionId: string): number {
   return Object.keys(readSessionViewMap()[sessionId] ?? {}).length;
 }
@@ -43,21 +56,38 @@ function countSessionPages(sessionId: string): number {
 async function patchPageView(
   viewId: string,
   sessionId: string,
+  path: string | null,
   options: { durationSeconds?: number; isBounce?: boolean } = {},
-) {
-  await fetch("/api/analytics/page-view", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      viewId,
-      sessionId,
-      durationSeconds: options.durationSeconds,
-      isBounce: options.isBounce,
-    }),
-    keepalive: true,
-  });
+): Promise<"ok" | "skipped" | "error"> {
+  try {
+    const response = await fetch("/api/analytics/page-view", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        viewId,
+        sessionId,
+        durationSeconds: options.durationSeconds,
+        isBounce: options.isBounce,
+      }),
+      keepalive: true,
+    });
 
-  touchSession();
+    if (!response.ok) return "error";
+
+    const payload = (await response.json()) as { skipped?: boolean };
+    if (payload.skipped) {
+      if (path) clearSessionViewId(sessionId, path);
+      if (sessionStorage.getItem(VIEW_KEY) === viewId) {
+        sessionStorage.removeItem(VIEW_KEY);
+      }
+      return "skipped";
+    }
+
+    touchSession();
+    return "ok";
+  } catch {
+    return "error";
+  }
 }
 
 async function trackPageView(path: string, sessionId: string) {
@@ -118,7 +148,7 @@ export function PageViewTracker() {
         1,
         Math.round((now - previousStartedAt) / 1000),
       );
-      void patchPageView(previousViewId, session.id, {
+      void patchPageView(previousViewId, session.id, previousPath, {
         durationSeconds: previousDuration,
         isBounce: false,
       });
@@ -139,9 +169,19 @@ export function PageViewTracker() {
     };
 
     if (existingViewId) {
-      bindView(existingViewId);
-      void patchPageView(existingViewId, session.id, { isBounce: false });
-      engagedRef.current = true;
+      void patchPageView(existingViewId, session.id, path, {
+        isBounce: false,
+      }).then((result) => {
+        if (cancelled || activePathRef.current !== path) return;
+        if (result === "skipped") {
+          void trackPageView(path, session.id).then((id) => bindView(id));
+          return;
+        }
+        if (result === "ok") {
+          bindView(existingViewId);
+          engagedRef.current = true;
+        }
+      });
     } else {
       void trackPageView(path, session.id).then((id) => {
         bindView(id);
@@ -167,9 +207,13 @@ export function PageViewTracker() {
         multiPage ||
         durationSeconds >= ENGAGED_SESSION_SECONDS;
 
-      void patchPageView(viewId, session.id, {
+      void patchPageView(viewId, session.id, path, {
         durationSeconds,
         isBounce: isExit ? !engaged : false,
+      }).then((result) => {
+        if (result === "skipped" && viewIdRef.current === viewId) {
+          viewIdRef.current = null;
+        }
       });
     };
 
