@@ -10,15 +10,41 @@ const supabaseHost = (() => {
   }
 })();
 
+/**
+ * Google Analytics / Ads / Tag Manager / DoubleClick allowlist.
+ * Note: CSP wildcards are one label only, so both `*.doubleclick.net`
+ * and `*.g.doubleclick.net` are required (stats.g / googleads.g).
+ */
+const GOOGLE_CSP = [
+  "https://www.googletagmanager.com",
+  "https://*.googletagmanager.com",
+  "https://www.google-analytics.com",
+  "https://*.google-analytics.com",
+  "https://analytics.google.com",
+  "https://*.analytics.google.com",
+  "https://www.googleadservices.com",
+  "https://*.googleadservices.com",
+  "https://www.google.com",
+  "https://*.google.com",
+  "https://google.com",
+  "https://www.gstatic.com",
+  "https://*.gstatic.com",
+  "https://www.googlesyndication.com",
+  "https://*.googlesyndication.com",
+  "https://pagead2.googlesyndication.com",
+  "https://*.doubleclick.net",
+  "https://*.g.doubleclick.net",
+].join(" ");
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   // Next.js needs inline/eval in practice for App Router hydration without nonces
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.clarity.ms https://scripts.clarity.ms",
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${GOOGLE_CSP} https://www.clarity.ms https://scripts.clarity.ms`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://${supabaseHost} https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://www.googleadservices.com https://www.google.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://*.clarity.ms https://c.bing.com`,
-  "font-src 'self' data:",
-  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://geocoding-api.open-meteo.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://www.googleadservices.com https://www.google.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.clarity.ms https://*.clarity.ms https://c.bing.com`,
-  "frame-src https://www.youtube.com https://youtube.com",
+  `img-src 'self' data: blob: https://${supabaseHost} https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org ${GOOGLE_CSP} https://*.clarity.ms https://c.bing.com`,
+  "font-src 'self' data: https://fonts.gstatic.com",
+  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://geocoding-api.open-meteo.com ${GOOGLE_CSP} https://www.clarity.ms https://*.clarity.ms https://c.bing.com`,
+  `frame-src https://www.youtube.com https://youtube.com ${GOOGLE_CSP}`,
   `media-src 'self' https://${supabaseHost}`,
   // Leaflet map tiles need worker/blob; keep object blocked
   "worker-src 'self' blob:",
